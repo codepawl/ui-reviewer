@@ -1,12 +1,50 @@
 #!/usr/bin/env node
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { isIP } from "node:net";
 import { z } from "zod";
 import { compareReviewReports, reviewUiUrl, type ReviewInput, type ReviewReport } from "../../../packages/reviewer-core/src/index.js";
 import { captureUiUrl } from "../../../packages/renderer/src/index.js";
 import { judgeRenderedUiWithVision } from "../../../packages/vision-adapter/src/index.js";
 
 const PORT = Number.parseInt(process.env.PORT ?? "4317", 10);
+const HOST = process.env.HOST ?? "127.0.0.1";
 const UXRAY_VERSION = "0.3.1";
+
+class BadReviewUrlError extends Error {
+  statusCode = 400;
+}
+
+function isPrivateHostname(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (["localhost", "0.0.0.0", "127.0.0.1", "::1"].includes(host)) return true;
+  if (host.endsWith(".local") || host.endsWith(".internal") || host === "metadata.google.internal") return true;
+
+  if (isIP(host)) {
+    if (host.startsWith("10.") || host.startsWith("127.") || host.startsWith("169.254.")) return true;
+    if (host.startsWith("192.168.")) return true;
+    const parts = host.split(".").map((part) => Number.parseInt(part, 10));
+    if (parts.length === 4 && parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+    if (host === "::1" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80")) return true;
+  }
+
+  return false;
+}
+
+function assertPublicReviewUrl(rawUrl: string): void {
+  const parsed = new URL(rawUrl);
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    throw new BadReviewUrlError("Only http and https URLs can be reviewed.");
+  }
+  if (isPrivateHostname(parsed.hostname)) {
+    throw new BadReviewUrlError("Hosted rendering cannot access localhost, private network, link-local, or metadata URLs.");
+  }
+}
+
+function isAuthorized(request: IncomingMessage): boolean {
+  const expected = process.env.RENDER_API_TOKEN;
+  if (!expected) return true;
+  return request.headers["x-uxray-render-token"] === expected;
+}
 
 function compareVersions(a: string, b: string): number {
   const left = a.split(".").map((part) => Number.parseInt(part, 10) || 0);
@@ -61,6 +99,9 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
 
 async function handleReviewUrl(body: unknown): Promise<unknown> {
   const args = reviewUrlSchema.parse(body);
+  if (process.env.UXRAY_REQUIRE_PUBLIC_URL === "true") {
+    assertPublicReviewUrl(args.url);
+  }
   let rendered;
   let renderError: string | undefined;
   let vision;
@@ -120,6 +161,11 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (!isAuthorized(request) && requestUrl.pathname !== "/health") {
+      sendJson(response, 401, { error: "unauthorized", message: "Missing or invalid render API token." });
+      return;
+    }
+
     if (request.method === "GET" && requestUrl.pathname === "/health") {
       sendJson(response, 200, {
         ok: true,
@@ -170,7 +216,7 @@ const server = createServer(async (request, response) => {
       message: `No route for ${request.method ?? "GET"} ${request.url ?? "/"}`
     });
   } catch (error) {
-    const statusCode = error instanceof z.ZodError ? 400 : 500;
+    const statusCode = error instanceof z.ZodError ? 400 : error instanceof BadReviewUrlError ? error.statusCode : 500;
     sendJson(response, statusCode, {
       error: statusCode === 400 ? "bad_request" : "internal_error",
       message: error instanceof Error ? error.message : String(error),
@@ -179,6 +225,6 @@ const server = createServer(async (request, response) => {
   }
 });
 
-server.listen(PORT, "127.0.0.1", () => {
-  console.error(`ui-reviewer-api listening on http://127.0.0.1:${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.error(`ui-reviewer-api listening on http://${HOST}:${PORT}`);
 });

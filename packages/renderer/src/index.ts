@@ -1,4 +1,5 @@
 import { chromium } from "playwright-core";
+import { existsSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -82,11 +83,20 @@ function slug(input: string): string {
   return `${input.replace(/^https?:\/\//, "").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").slice(0, 48)}-${hash}`;
 }
 
+function resolveChromeExecutable(explicit?: string): string {
+  if (explicit) return explicit;
+  if (process.env.UI_REVIEWER_CHROME) return process.env.UI_REVIEWER_CHROME;
+  for (const candidate of ["/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser"]) {
+    if (existsSync(candidate)) return candidate;
+  }
+  return chromium.executablePath();
+}
+
 export async function captureUiUrl(url: string, options: CaptureOptions = {}): Promise<RenderedUiContext> {
   const outDir = options.outDir ?? path.resolve(process.cwd(), "reports", "screenshots");
   await mkdir(outDir, { recursive: true });
 
-  const executablePath = options.chromeExecutable ?? process.env.UI_REVIEWER_CHROME ?? "/usr/bin/google-chrome";
+  const executablePath = resolveChromeExecutable(options.chromeExecutable);
   const browser = await chromium.launch({
     executablePath,
     headless: true,

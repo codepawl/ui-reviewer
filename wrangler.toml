@@ -10,3 +10,6 @@ routes = [
 [assets]
 directory = "./apps/site"
 binding = "ASSETS"
+
+[vars]
+RENDER_API_BASE = "https://uxray-renderer.fly.dev"

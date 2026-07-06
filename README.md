@@ -41,7 +41,7 @@ https://useuxray.com/v1/demo/report
 https://useuxray.com/plugins/uxray-agent-skill.md
 ```
 
-The Cloudflare site hosts the landing page, install docs, before/after demo visuals, pricing/account shell, UXRay agent skill, and static API-shaped demo endpoints. Full URL rendering still runs through local MCP/Playwright or the Node API because standard Cloudflare Workers cannot launch Chrome.
+The Cloudflare site hosts the landing page, install docs, before/after demo visuals, pricing/account shell, UXRay agent skill, and public API surface. Full URL rendering runs through local MCP/Playwright or a browser-capable Node render worker. In production, Cloudflare remains the control plane and proxies `/v1/reviews/url` to the Fly.io render worker when `RENDER_API_BASE` is configured, because standard Workers should not launch Chrome.
 
 The current review contract includes `top_issues`, viewport `layout_metrics`, and a `repair_plan` with region, selector hints, change intent, constraints, acceptance checks, and regression risks. This makes the output more useful as an agent repair contract than generic design advice.
 
@@ -82,6 +82,17 @@ Run the local API:
 ```bash
 PORT=4317 npm run api
 ```
+
+Hosted render worker:
+
+```bash
+flyctl deploy
+wrangler secret put RENDER_API_TOKEN
+# set RENDER_API_BASE to the Fly app URL in wrangler.toml or deployment config
+npm run cloudflare:deploy
+```
+
+The Fly worker is intentionally narrow: it runs the browser-capable Node API only. It should use `RENDER_API_TOKEN`, `UXRAY_REQUIRE_PUBLIC_URL=true`, and hard timeouts so public hosted rendering cannot access localhost/private-network URLs.
 
 Run the fixture eval pack:
 

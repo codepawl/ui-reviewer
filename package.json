@@ -13,6 +13,7 @@
     "smoke:render": "node scripts/smoke-render-client.mjs",
     "smoke:vision": "node scripts/smoke-vision-client.mjs",
     "smoke:api": "node scripts/smoke-api.mjs",
+    "smoke:hosted": "node scripts/smoke-hosted-review.mjs",
     "eval:fixtures": "node scripts/eval-fixtures.mjs",
     "eval:reset": "node scripts/reset-eval-fixtures.mjs",
     "demo:report": "node scripts/generate-demo-report.mjs",

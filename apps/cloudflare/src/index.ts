@@ -4,6 +4,8 @@ type Env = {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
   CREEM_API_KEY?: string;
   CREEM_API_BASE?: string;
+  RENDER_API_BASE?: string;
+  RENDER_API_TOKEN?: string;
 };
 
 const UXRAY_VERSION = "0.3.1";
@@ -213,6 +215,31 @@ async function readJson(request: Request): Promise<unknown> {
   }
 }
 
+async function proxyRenderRequest(request: Request, env: Env): Promise<Response | null> {
+  if (!env.RENDER_API_BASE) return null;
+
+  const upstreamUrl = new URL("/v1/reviews/url", env.RENDER_API_BASE.replace(/\/$/, ""));
+  const headers = new Headers({ "content-type": "application/json" });
+  if (env.RENDER_API_TOKEN) headers.set("x-uxray-render-token", env.RENDER_API_TOKEN);
+
+  const upstream = await fetch(upstreamUrl.toString(), {
+    method: "POST",
+    headers,
+    body: await request.text()
+  });
+
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers: {
+      "content-type": upstream.headers.get("content-type") || "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "GET,POST,OPTIONS",
+      "access-control-allow-headers": "content-type"
+    }
+  });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -222,7 +249,7 @@ export default {
     }
 
     if (url.pathname === "/health") {
-      return json({ ok: true, service: "uxray-cloudflare", stage: "deployed-demo" });
+      return json({ ok: true, service: "uxray-cloudflare", stage: "deployed-demo", hosted_rendering: Boolean(env.RENDER_API_BASE) });
     }
 
     if (url.pathname === "/v1/update" && request.method === "GET") {
@@ -324,6 +351,9 @@ export default {
     }
 
     if (url.pathname === "/v1/reviews/url" && request.method === "POST") {
+      const proxied = await proxyRenderRequest(request, env);
+      if (proxied) return proxied;
+
       return json(
         {
           error: "hosted_url_rendering_not_enabled",
