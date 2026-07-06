@@ -18,13 +18,13 @@
       <section class="auth-card reveal">
         <div>
           <h1>Log in.</h1>
-          <p class="lede">Saved report links are live. Log in will soon attach them to account history, MCP config, and hosted review credits.</p>
+          <p class="lede">Log in with email to scope dashboard usage, saved reports, and credit telemetry to your workspace.</p>
         </div>
         <form class="auth-form" action="/v1/auth/login" method="post">
           <label>Email<input type="email" name="email" placeholder="you@company.com" required /></label>
-          <label>Password<input type="password" name="password" placeholder="••••••••" required /></label>
+          <input type="hidden" name="next" value="/account.html" />
           <button class="button primary" type="submit">Continue</button>
-          <p class="fine-print">Billing is Creem-backed. This form is still the account shell while session storage and entitlements are wired.</p>
+          <p class="fine-print">This creates an email-scoped session cookie. Email verification is the next hardening step.</p>
         </form>
       </section>
     </main>

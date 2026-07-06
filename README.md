@@ -21,11 +21,13 @@ The first spike validates the Codex integration path:
 - `GET /v1/update` — returns latest UXRay version, release notes, and local check/upgrade commands.
 - `GET /v1/demo/report` — returns the static demo scorecard used by the landing page.
 - `GET|POST /v1/billing/checkout` — creates a Creem checkout session for `plan=pro|team|credits`, with direct product-link fallback.
+- `GET /v1/auth/session` — returns the current email-scoped session from the `uxray_session` cookie.
+- `POST /v1/auth/login` / `POST /v1/auth/register` — create/update an email-scoped workspace session; register also records a pending Creem entitlement before checkout.
 - `POST /v1/reviews/url` — API equivalent of `review_ui_url`; hosted mode stores report JSON/screenshots and returns `report_id`, `report_url`, and `share_url`.
 - `GET /v1/reports/:id` — returns a saved hosted review report from R2.
 - `GET /r/:id` — renders a public saved report page with score, screenshots, top issues, and API snippet.
 - `GET /v1/reports/:id/screenshots/:file` — serves persisted screenshots from R2.
-- `GET /v1/account/dashboard` — returns dashboard shell data: hosted usage, saved report summaries, achievements, and advanced product bets.
+- `GET /v1/account/dashboard` — returns account-scoped usage when logged in; otherwise global preview usage, saved report summaries, achievements, and advanced product bets.
 - `POST /v1/reviews/diff` — API equivalent of `review_ui_diff`.
 
 ## Hosted Cloudflare demo
@@ -50,7 +52,7 @@ The Cloudflare site hosts the landing page, install docs, before/after demo visu
 
 The current review contract includes `top_issues`, viewport `layout_metrics`, and a `repair_plan` with region, selector hints, change intent, constraints, acceptance checks, and regression risks. This makes the output more useful as an agent repair contract than generic design advice.
 
-Payment is wired through Creem checkout for `UXRay Pro` at `$19/mo`, `UXRay Team` at `$99/mo`, and `UXRay Review Credits` at `$49` one-time. `/v1/billing/checkout` creates a Creem checkout session with `CREEM_API_KEY` when configured, then falls back to direct Creem payment links by `plan=pro|team|credits` if the secret is absent or Creem returns an error.
+Payment is wired through Creem checkout for `UXRay Pro` at `$19/mo`, `UXRay Team` at `$99/mo`, and `UXRay Review Credits` at `$49` one-time. `/v1/billing/checkout` creates/updates an email workspace, records a pending entitlement, creates a Creem checkout session with `CREEM_API_KEY` when configured, then falls back to direct Creem payment links by `plan=pro|team|credits` if the secret is absent or Creem returns an error. Creem webhook payloads are recorded in D1 as unverified billing events until signature verification is added.
 
 The public demo gallery currently shows 3 validated before/after screenshot pairs from the real eval run plus 7 install-to-run scenario cards. Do not present the 7 extra scenario cards as validated before/after proofs until their fixtures have been generated and repaired.
 

@@ -18,14 +18,15 @@
       <section class="auth-card reveal">
         <div>
           <h1>Get MCP access.</h1>
-          <p class="lede">Create your UXRay account, choose a plan, and keep saved hosted reports tied to your workflow once sessions are enabled.</p>
+          <p class="lede">Create an email-scoped UXRay workspace, start a Creem checkout, and unlock dashboard credits/report history.</p>
         </div>
-        <form class="auth-form" action="/v1/billing/checkout" method="post">
+        <form class="auth-form" action="/v1/auth/register" method="post">
           <label>Email<input type="email" name="email" placeholder="you@company.com" required /></label>
           <label>Use case<select name="use_case"><option>AI-generated landing pages</option><option>Agent-built dashboards</option><option>Frontend QA in CI</option><option>Team UI review workflow</option></select></label>
           <label>Plan<select name="plan"><option value="pro">Pro hosted reviews</option><option value="team">Team / CI</option><option value="credits">Review credit pack</option></select></label>
+          <input type="hidden" name="intent" value="checkout" />
           <button class="button primary" type="submit">Proceed to payment</button>
-          <p class="fine-print">This redirects to Creem checkout. Durable report links are live now; credit delivery and account history are the next backend slice.</p>
+          <p class="fine-print">This creates the workspace/session first, records a pending entitlement, then redirects to Creem checkout.</p>
         </form>
       </section>
     </main>

@@ -19,11 +19,12 @@
         <div>
           <p class="section-kicker">Account dashboard</p>
           <h1>Monitor UXRay usage, proof reports, and repair momentum.</h1>
-          <p class="lede">Auth is still a shell, but the dashboard is wired to live hosted report metrics from D1/R2. Once sessions land, these cards become per-account usage, credits, history, and achievements.</p>
+          <p class="lede">Email sessions are live. Without a session this shows global preview metrics; after login, credits, saved reports, and achievements are scoped to your workspace.</p>
         </div>
         <div class="dashboard-plan-card">
-          <span>Plan shell</span>
-          <strong data-dashboard-field="usage.plan">Pro shell</strong>
+          <span>Plan</span>
+          <strong data-dashboard-field="usage.plan">Preview</strong>
+          <p class="fine-print">Workspace: <span data-dashboard-field="account.email">public preview</span></p>
           <p><span data-dashboard-field="usage.credits_remaining">—</span> review credits remaining this month.</p>
           <a class="button primary" href="/checkout.html?plan=pro">Upgrade / refill</a>
         </div>
@@ -33,7 +34,7 @@
         <article><span>Hosted reports</span><strong data-dashboard-field="totals.report_count">—</strong><p>Durable reports saved to R2.</p></article>
         <article><span>Screenshots stored</span><strong data-dashboard-field="totals.screenshot_count">—</strong><p>Evidence assets persisted.</p></article>
         <article><span>Average score</span><strong data-dashboard-field="totals.average_score">—</strong><p>Across saved hosted reports.</p></article>
-        <article><span>Credits used</span><strong><span data-dashboard-field="usage.credits_used">—</span>/<span data-dashboard-field="usage.monthly_credits">—</span></strong><p>Temporary shell quota until billing entitlements land.</p></article>
+        <article><span>Credits used</span><strong><span data-dashboard-field="usage.credits_used">—</span>/<span data-dashboard-field="usage.monthly_credits">—</span></strong><p>Pending/active entitlement usage.</p></article>
       </section>
 
       <section class="dashboard-two-col">

@@ -56,6 +56,21 @@ type DashboardTotals = {
   latest_report_at: string | null;
 };
 
+type AccountSession = {
+  email: string;
+  plan: string;
+  status: string;
+};
+
+type EntitlementRow = {
+  plan: string;
+  status: string;
+  monthly_credits: number;
+  credits_remaining: number;
+  provider?: string;
+  updated_at: string;
+};
+
 type Env = {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
   DB?: D1DatabaseLike;
@@ -242,6 +257,112 @@ const installGuide = {
   hosted_note: "Cloudflare hosts the landing/docs/static demo API. URL rendering needs a browser-capable local or hosted runtime."
 };
 
+function planCredits(plan: BillingPlan | string): number {
+  if (plan === "team") return 500;
+  if (plan === "credits") return 50;
+  if (plan === "pro") return 100;
+  return 5;
+}
+
+function normalizeEmail(value: unknown): string | null {
+  const email = String(value || "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+  return email;
+}
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function parseCookies(request: Request): Record<string, string> {
+  const header = request.headers.get("cookie") || "";
+  return Object.fromEntries(header.split(";").map((part) => {
+    const [key, ...rest] = part.trim().split("=");
+    return [key, decodeURIComponent(rest.join("="))];
+  }).filter(([key]) => key));
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function newToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function sessionCookie(token: string, maxAge = 60 * 60 * 24 * 30): string {
+  return `uxray_session=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Lax`;
+}
+
+function redirectWithCookie(location: string, cookie: string, status = 303): Response {
+  const response = redirect(location, status);
+  response.headers.append("set-cookie", cookie);
+  return response;
+}
+
+async function readRequestFields(request: Request): Promise<Record<string, string>> {
+  const contentType = request.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    const body = await readJson(request) as Record<string, unknown>;
+    return Object.fromEntries(Object.entries(body).map(([key, value]) => [key, String(value ?? "")]));
+  }
+  if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
+    const form = await request.formData();
+    return Object.fromEntries([...form.entries()].map(([key, value]) => [key, String(value)]));
+  }
+  return {};
+}
+
+async function upsertAccount(env: Env, email: string, plan: string = "free"): Promise<void> {
+  if (!env.DB) return;
+  const timestamp = nowIso();
+  await env.DB.prepare(`INSERT INTO accounts (email, created_at, last_seen_at, plan, status) VALUES (?, ?, ?, ?, 'active') ON CONFLICT(email) DO UPDATE SET last_seen_at = excluded.last_seen_at, plan = CASE WHEN accounts.plan = 'free' THEN excluded.plan ELSE accounts.plan END`)
+    .bind(email, timestamp, timestamp, plan)
+    .run();
+}
+
+async function ensureEntitlement(env: Env, email: string, plan: string, status = "checkout_started", provider = "creem"): Promise<void> {
+  if (!env.DB) return;
+  const credits = planCredits(plan);
+  await env.DB.prepare(`INSERT INTO entitlements (account_email, plan, status, monthly_credits, credits_remaining, provider, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(account_email, plan) DO UPDATE SET status = excluded.status, monthly_credits = excluded.monthly_credits, credits_remaining = MAX(entitlements.credits_remaining, excluded.credits_remaining), provider = excluded.provider, updated_at = excluded.updated_at`)
+    .bind(email, plan, status, credits, credits, provider, nowIso())
+    .run();
+}
+
+async function logUsage(env: Env, email: string | null, kind: string, amount: number, referenceId?: string, metadata?: Record<string, unknown>): Promise<void> {
+  if (!env.DB) return;
+  await env.DB.prepare(`INSERT INTO usage_ledger (id, account_email, kind, amount, reference_id, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+    .bind(crypto.randomUUID(), email, kind, amount, referenceId || "", JSON.stringify(metadata || {}), nowIso())
+    .run();
+}
+
+async function createSession(env: Env, email: string): Promise<string | null> {
+  if (!env.DB) return null;
+  const token = newToken();
+  const tokenHash = await sha256Hex(token);
+  const createdAt = nowIso();
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
+  await env.DB.prepare(`INSERT INTO sessions (token_hash, account_email, created_at, expires_at) VALUES (?, ?, ?, ?)`)
+    .bind(tokenHash, email, createdAt, expiresAt)
+    .run();
+  return token;
+}
+
+async function getCurrentAccount(request: Request, env: Env): Promise<AccountSession | null> {
+  if (!env.DB) return null;
+  const token = parseCookies(request).uxray_session;
+  if (!token) return null;
+  const tokenHash = await sha256Hex(token);
+  const account = await env.DB.prepare(`SELECT accounts.email AS email, accounts.plan AS plan, accounts.status AS status FROM sessions JOIN accounts ON accounts.email = sessions.account_email WHERE sessions.token_hash = ? AND sessions.expires_at > ? LIMIT 1`)
+    .bind(tokenHash, nowIso())
+    .first<AccountSession>();
+  return account || null;
+}
+
 const advancedFeatureBets = [
   {
     name: "Agent CI Firewall",
@@ -306,47 +427,70 @@ function achievementsFor(totals: DashboardTotals) {
   ];
 }
 
-async function accountDashboard(env: Env) {
+async function accountDashboard(request: Request, env: Env) {
   const emptyTotals: DashboardTotals = { report_count: 0, screenshot_count: 0, average_score: 0, latest_report_at: null };
+  const account = await getCurrentAccount(request, env);
   if (!env.DB) {
     return {
       ok: true,
-      status: "account_shell_only",
-      account_enabled: false,
+      status: "account_storage_unavailable",
+      account_enabled: Boolean(account),
+      account,
       totals: emptyTotals,
-      usage: { plan: "Pro shell", monthly_credits: 100, credits_used: 0, credits_remaining: 100, render_worker: "configured" },
+      usage: { plan: "Free", monthly_credits: 5, credits_used: 0, credits_remaining: 5, render_worker: "configured" },
       recent_reports: [],
       achievements: achievementsFor(emptyTotals),
       advanced_features: advancedFeatureBets
     };
   }
 
-  const totalsRow = await env.DB.prepare(`SELECT COUNT(*) AS report_count, COALESCE(SUM(screenshot_count), 0) AS screenshot_count, COALESCE(ROUND(AVG(score), 1), 0) AS average_score, MAX(created_at) AS latest_report_at FROM reports`)
-    .bind()
-    .first<DashboardTotals>();
+  const entitlement = account
+    ? await env.DB.prepare(`SELECT plan, status, monthly_credits, credits_remaining, provider, updated_at FROM entitlements WHERE account_email = ? ORDER BY updated_at DESC LIMIT 1`)
+      .bind(account.email)
+      .first<EntitlementRow>()
+    : null;
+
+  const totalsRow = account
+    ? await env.DB.prepare(`SELECT COUNT(*) AS report_count, COALESCE(SUM(screenshot_count), 0) AS screenshot_count, COALESCE(ROUND(AVG(score), 1), 0) AS average_score, MAX(created_at) AS latest_report_at FROM reports WHERE account_email = ?`)
+      .bind(account.email)
+      .first<DashboardTotals>()
+    : await env.DB.prepare(`SELECT COUNT(*) AS report_count, COALESCE(SUM(screenshot_count), 0) AS screenshot_count, COALESCE(ROUND(AVG(score), 1), 0) AS average_score, MAX(created_at) AS latest_report_at FROM reports`)
+      .bind()
+      .first<DashboardTotals>();
   const totals = totalsRow || emptyTotals;
-  const recent = await env.DB.prepare(`SELECT id, reviewed_url, title, score, verdict, screenshot_count, created_at FROM reports ORDER BY created_at DESC LIMIT 5`)
-    .bind()
-    .all<ReportSummaryRow>();
+
+  const recent = account
+    ? await env.DB.prepare(`SELECT id, reviewed_url, title, score, verdict, screenshot_count, created_at FROM reports WHERE account_email = ? ORDER BY created_at DESC LIMIT 5`)
+      .bind(account.email)
+      .all<ReportSummaryRow>()
+    : await env.DB.prepare(`SELECT id, reviewed_url, title, score, verdict, screenshot_count, created_at FROM reports ORDER BY created_at DESC LIMIT 5`)
+      .bind()
+      .all<ReportSummaryRow>();
   const recentReports = (recent.results || []).map((report) => ({
     ...report,
     report_url: `/r/${report.id}`,
     api_url: `/v1/reports/${report.id}`
   }));
-  const monthlyCredits = 100;
-  const creditsUsed = Math.min(Number(totals.report_count || 0), monthlyCredits);
+  const monthlyCredits = entitlement?.monthly_credits ?? (account ? planCredits(account.plan) : 100);
+  const creditsRemaining = entitlement?.credits_remaining ?? Math.max(0, monthlyCredits - Number(totals.report_count || 0));
+  const creditsUsed = Math.max(0, monthlyCredits - creditsRemaining);
 
   return {
     ok: true,
-    status: "dashboard_shell_live_metrics",
-    account_enabled: false,
-    account_note: "Auth/session is not enabled yet. This dashboard uses global hosted report metrics until user accounts and entitlements are wired.",
+    status: account ? "dashboard_account_scoped" : "dashboard_global_preview",
+    account_enabled: Boolean(account),
+    account,
+    account_note: account
+      ? "Email session is active. Email verification and production auth hardening are still pending."
+      : "No session cookie found. Showing global hosted report metrics as a public preview.",
+    entitlement,
     totals,
     usage: {
-      plan: "Pro shell",
+      plan: entitlement?.plan || account?.plan || "Global preview",
+      entitlement_status: entitlement?.status || (account ? "free" : "preview"),
       monthly_credits: monthlyCredits,
       credits_used: creditsUsed,
-      credits_remaining: monthlyCredits - creditsUsed,
+      credits_remaining: creditsRemaining,
       hosted_reports: totals.report_count,
       persisted_screenshots: totals.screenshot_count,
       render_worker: "Fly.io auto-start",
@@ -420,7 +564,7 @@ async function loadReport(env: Env, id: string): Promise<HostedReport | null> {
   return await new Response(object.body).json() as HostedReport;
 }
 
-async function persistHostedReport(payload: HostedReport, env: Env, origin: string): Promise<HostedReport> {
+async function persistHostedReport(payload: HostedReport, env: Env, origin: string, accountEmail?: string | null): Promise<HostedReport> {
   if (!env.REPORTS || !payload.rendered_context) return payload;
 
   const id = crypto.randomUUID().replace(/-/g, "").slice(0, 20);
@@ -449,6 +593,7 @@ async function persistHostedReport(payload: HostedReport, env: Env, origin: stri
 
   const stored: HostedReport = {
     ...payload,
+    account_email: accountEmail || undefined,
     report_id: id,
     report_url: `/r/${id}`,
     share_url: `${origin}/r/${id}`,
@@ -463,7 +608,7 @@ async function persistHostedReport(payload: HostedReport, env: Env, origin: stri
   });
 
   if (env.DB) {
-    await env.DB.prepare(`INSERT OR REPLACE INTO reports (id, reviewed_url, final_url, title, score, verdict, screenshot_count, created_at, report_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    await env.DB.prepare(`INSERT OR REPLACE INTO reports (id, reviewed_url, final_url, title, score, verdict, screenshot_count, created_at, report_key, account_email) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .bind(
         id,
         String(stored.reviewed_url || ""),
@@ -473,9 +618,16 @@ async function persistHostedReport(payload: HostedReport, env: Env, origin: stri
         String(stored.verdict || ""),
         screenshotCount,
         createdAt,
-        reportKey
+        reportKey,
+        accountEmail || null
       )
       .run();
+    if (accountEmail) {
+      await logUsage(env, accountEmail, "hosted_review", 1, id, { reviewed_url: stored.reviewed_url, score: stored.score });
+      await env.DB.prepare(`UPDATE entitlements SET credits_remaining = CASE WHEN credits_remaining > 0 THEN credits_remaining - 1 ELSE 0 END, updated_at = ? WHERE account_email = ? AND credits_remaining > 0`)
+        .bind(nowIso(), accountEmail)
+        .run();
+    }
   }
 
   return stored;
@@ -539,6 +691,7 @@ async function readJson(request: Request): Promise<unknown> {
 
 async function proxyRenderRequest(request: Request, env: Env, origin: string): Promise<Response | null> {
   if (!env.RENDER_API_BASE) return null;
+  const account = await getCurrentAccount(request, env);
 
   const upstreamUrl = new URL("/v1/reviews/url", env.RENDER_API_BASE.replace(/\/$/, ""));
   const headers = new Headers({ "content-type": "application/json" });
@@ -562,7 +715,7 @@ async function proxyRenderRequest(request: Request, env: Env, origin: string): P
     return json(payload, upstream.status);
   }
 
-  const persisted = await persistHostedReport(payload as HostedReport, env, origin);
+  const persisted = await persistHostedReport(payload as HostedReport, env, origin, account?.email);
   return json(persisted, upstream.status);
 }
 
@@ -579,7 +732,7 @@ export default {
     }
 
     if (url.pathname === "/v1/account/dashboard" && request.method === "GET") {
-      return json(await accountDashboard(env));
+      return json(await accountDashboard(request, env));
     }
 
     const reportScreenshotMatch = url.pathname.match(/^\/v1\/reports\/([a-z0-9-]{8,64})\/screenshots\/([a-z0-9._-]+)$/i);
@@ -646,12 +799,26 @@ export default {
       } catch {
         event = null;
       }
-      const eventType = typeof event === "object" && event && "eventType" in event
-        ? (event as { eventType?: unknown }).eventType
-        : typeof event === "object" && event && "type" in event
-          ? (event as { type?: unknown }).type
+      const record = typeof event === "object" && event ? event as Record<string, any> : {};
+      const eventType = typeof record.eventType === "string"
+        ? record.eventType
+        : typeof record.type === "string"
+          ? record.type
           : "unknown";
-      return json({ ok: true, provider: "creem", received: true, event_type: eventType });
+      const email = normalizeEmail(record.customer?.email || record.customer_email || record.email || record.metadata?.email);
+      const plan = normalizePlan(record.metadata?.plan || record.plan || record.product?.name || record.product_id);
+      const eventId = String(record.id || record.event_id || crypto.randomUUID());
+      if (env.DB) {
+        await env.DB.prepare(`INSERT OR REPLACE INTO billing_events (id, provider, event_type, account_email, plan, status, payload_json, received_at) VALUES (?, 'creem', ?, ?, ?, ?, ?, ?)`)
+          .bind(eventId, eventType, email, plan, "webhook_received_unverified", JSON.stringify(record), nowIso())
+          .run();
+        if (email) {
+          await upsertAccount(env, email, plan);
+          await ensureEntitlement(env, email, plan, "webhook_received_unverified", "creem");
+          await logUsage(env, email, "creem_webhook_received", 0, eventId, { event_type: eventType, plan });
+        }
+      }
+      return json({ ok: true, provider: "creem", received: true, event_type: eventType, account_email: email, plan, status: "recorded_unverified" });
     }
 
     if (url.pathname === "/v1/billing/checkout" && (request.method === "GET" || request.method === "POST")) {
@@ -675,26 +842,56 @@ export default {
       }
 
       const normalizedPlan = normalizePlan(requestedPlan);
+      const normalizedEmail = normalizeEmail(email);
+      let sessionToken: string | null = null;
+      if (normalizedEmail) {
+        await upsertAccount(env, normalizedEmail, normalizedPlan);
+        await ensureEntitlement(env, normalizedEmail, normalizedPlan, "checkout_started", "creem");
+        await logUsage(env, normalizedEmail, "checkout_started", 0, undefined, { plan: normalizedPlan });
+        sessionToken = await createSession(env, normalizedEmail);
+      }
       const checkoutSessionUrl = await createCreemCheckout(env, url.origin, normalizedPlan, email);
       if (checkoutSessionUrl) {
-        return redirect(checkoutSessionUrl);
+        return sessionToken ? redirectWithCookie(checkoutSessionUrl, sessionCookie(sessionToken)) : redirect(checkoutSessionUrl);
       }
 
       const checkoutUrl = new URL(creemCheckoutUrl(normalizedPlan));
       if (email) checkoutUrl.searchParams.set("email", email);
-      return redirect(checkoutUrl.toString());
+      return sessionToken ? redirectWithCookie(checkoutUrl.toString(), sessionCookie(sessionToken)) : redirect(checkoutUrl.toString());
+    }
+
+    if (url.pathname === "/v1/auth/session" && request.method === "GET") {
+      const account = await getCurrentAccount(request, env);
+      return json({ ok: true, authenticated: Boolean(account), account });
+    }
+
+    if (url.pathname === "/v1/auth/logout" && request.method === "POST") {
+      const response = json({ ok: true, authenticated: false });
+      response.headers.append("set-cookie", sessionCookie("", 0));
+      return response;
     }
 
     if ((url.pathname === "/v1/auth/login" || url.pathname === "/v1/auth/register") && request.method === "POST") {
-      return json(
-        {
-          ok: false,
-          status: "account_shell_only",
-          message: "Account UI is present, but user auth and entitlement delivery are not wired yet. Creem checkout redirects through /v1/billing/checkout.",
-          next: "/docs.html#plugins"
-        },
-        202
-      );
+      const fields = await readRequestFields(request);
+      const email = normalizeEmail(fields.email);
+      if (!email) return json({ ok: false, error: "invalid_email", message: "Enter a valid email address." }, 400);
+      const plan = normalizePlan(fields.plan);
+      await upsertAccount(env, email, url.pathname.endsWith("register") ? plan : "free");
+      if (url.pathname.endsWith("register")) {
+        await ensureEntitlement(env, email, plan, "checkout_started", "creem");
+        await logUsage(env, email, "account_registered", 0, undefined, { plan, use_case: fields.use_case || "" });
+      } else {
+        await logUsage(env, email, "account_login", 0);
+      }
+      const token = await createSession(env, email);
+      const next = fields.next && fields.next.startsWith("/") ? fields.next : "/account.html";
+      if (fields.intent === "checkout" || url.pathname.endsWith("register")) {
+        const checkoutUrl = new URL("/v1/billing/checkout", url.origin);
+        checkoutUrl.searchParams.set("plan", plan);
+        checkoutUrl.searchParams.set("email", email);
+        return token ? redirectWithCookie(checkoutUrl.toString(), sessionCookie(token)) : redirect(checkoutUrl.toString());
+      }
+      return token ? redirectWithCookie(next, sessionCookie(token)) : redirect(next);
     }
 
     if (url.pathname === "/v1/reviews/url" && request.method === "POST") {
