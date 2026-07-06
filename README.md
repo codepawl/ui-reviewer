@@ -23,8 +23,9 @@ The first spike validates the Codex integration path:
 - `GET|POST /v1/billing/checkout` — creates a Creem checkout session for `plan=pro|team|credits`, with direct product-link fallback.
 - `POST /v1/reviews/url` — API equivalent of `review_ui_url`; hosted mode stores report JSON/screenshots and returns `report_id`, `report_url`, and `share_url`.
 - `GET /v1/reports/:id` — returns a saved hosted review report from R2.
-- `GET /r/:id` — public share page for a saved hosted review report.
+- `GET /r/:id` — renders a public saved report page with score, screenshots, top issues, and API snippet.
 - `GET /v1/reports/:id/screenshots/:file` — serves persisted screenshots from R2.
+- `GET /v1/account/dashboard` — returns dashboard shell data: hosted usage, saved report summaries, achievements, and advanced product bets.
 - `POST /v1/reviews/diff` — API equivalent of `review_ui_diff`.
 
 ## Hosted Cloudflare demo
@@ -137,7 +138,7 @@ TEST_URL=http://127.0.0.1:4173 npm run smoke:vision
 OPENAI_API_KEY=... TEST_URL=http://127.0.0.1:4173 npm run smoke:vision
 ```
 
-For the Codex-login path, do not force a server-side API key. Ask the MCP tool to return images, then let Codex inspect them with its own logged-in model session:
+For the Codex-login path, do not force a server-side API key. Install the UXRay agent skill so Codex auto-triggers UXRay for generated frontend review/repair tasks, asks the MCP tool to return images, then inspects them with its own logged-in model session:
 
 ```bash
 HOME=/home/nxank4 codex exec --sandbox workspace-write --cd /home/nxank4/Code/hermes/codepawl/ui-reviewer \

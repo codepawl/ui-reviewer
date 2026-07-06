@@ -212,6 +212,64 @@
 
   hydrateShareActions();
 
+  const getPath = (object, path) => path.split('.').reduce((value, key) => value?.[key], object);
+
+  const hydrateDashboard = async () => {
+    const root = document.querySelector('[data-dashboard-root]');
+    if (!root) return;
+    try {
+      const response = await fetch('/v1/account/dashboard', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Dashboard request failed: ${response.status}`);
+      const dashboard = await response.json();
+
+      root.querySelectorAll('[data-dashboard-field]').forEach((node) => {
+        const value = getPath(dashboard, node.getAttribute('data-dashboard-field') || '');
+        node.textContent = value === null || value === undefined || value === '' ? '—' : String(value);
+      });
+
+      const reports = root.querySelector('[data-dashboard-reports]');
+      const recentReports = dashboard.recent_reports || [];
+      if (reports) {
+        reports.innerHTML = recentReports.length
+          ? recentReports.map((report) => `
+            <a class="report-row" href="${escapeHtml(report.report_url)}">
+              <span><strong>${escapeHtml(report.title || 'Saved UXRay report')}</strong><small>${escapeHtml(report.reviewed_url || '')}</small></span>
+              <span><b>${escapeHtml(report.score ?? '—')}</b><small>${escapeHtml(report.verdict || '')}</small></span>
+            </a>`).join('')
+          : '<p class="fine-print">No saved hosted reports yet. Run a hosted review to unlock the dashboard.</p>';
+      }
+
+      const achievements = root.querySelector('[data-dashboard-achievements]');
+      if (achievements) {
+        achievements.innerHTML = (dashboard.achievements || []).map((achievement) => {
+          const percent = Math.min(100, Math.round(((achievement.progress || 0) / Math.max(achievement.target || 1, 1)) * 100));
+          return `<article class="achievement-card ${escapeHtml(achievement.status)}">
+            <div><strong>${escapeHtml(achievement.name)}</strong><span>${escapeHtml(achievement.status)}</span></div>
+            <p>${escapeHtml(achievement.description)}</p>
+            <div class="progress"><i style="width:${percent}%"></i></div>
+            <small>${escapeHtml(achievement.progress || 0)} / ${escapeHtml(achievement.target || 1)}</small>
+          </article>`;
+        }).join('');
+      }
+
+      const features = root.querySelector('[data-dashboard-features]');
+      if (features) {
+        features.innerHTML = (dashboard.advanced_features || []).map((feature) => `
+          <article class="feature-bet">
+            <div><span>${escapeHtml(feature.category)}</span><b>${escapeHtml(feature.price_anchor)}</b></div>
+            <h3>${escapeHtml(feature.name)}</h3>
+            <p>${escapeHtml(feature.description)}</p>
+            <small>${escapeHtml(feature.why_it_can_charge)}</small>
+          </article>`).join('');
+      }
+    } catch (error) {
+      root.querySelectorAll('[data-dashboard-reports], [data-dashboard-achievements], [data-dashboard-features]').forEach((node) => {
+        node.innerHTML = `<p class="fine-print">Dashboard failed to load: ${escapeHtml(error?.message || error)}</p>`;
+      });
+    }
+  };
+  hydrateDashboard();
+
   document.addEventListener('click', async (event) => {
     const target = event.target.closest('[data-share-action], [data-bookmark-action], [data-copy-link], [data-copy-upgrade], [data-close-dialog], [data-dismiss-update]');
     if (!target) return;

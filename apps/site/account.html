@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>UXRay Account</title>
+    <title>UXRay Account Dashboard</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="alternate icon" href="/favicon.ico" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -14,18 +14,54 @@
   <body>
     <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
     <header class="nav"><a class="brand" href="/"><span class="mark"></span><span>UXRay</span></a><nav><a href="/demo-report.html">Proof</a><a href="/docs.html">Docs</a><a href="https://github.com/codepawl/ui-reviewer" target="_blank" rel="noreferrer">GitHub</a><a class="nav-cta" href="/checkout.html?plan=pro">Pay</a></nav></header>
-    <main class="auth-main shell">
-      <section class="auth-card checkout-card reveal">
+    <main class="shell account-dashboard" data-dashboard-root>
+      <section class="dashboard-hero reveal">
         <div>
-          <h1>Payment received.</h1>
-          <p class="lede">Hosted reports now save with durable share links. Account login and entitlement delivery are still the next backend slice.</p>
-          <p class="fine-print">If you reached this page from Creem checkout, keep your receipt email. Saved report links live under <code>/r/:id</code> until account history is wired.</p>
+          <p class="section-kicker">Account dashboard</p>
+          <h1>Monitor UXRay usage, proof reports, and repair momentum.</h1>
+          <p class="lede">Auth is still a shell, but the dashboard is wired to live hosted report metrics from D1/R2. Once sessions land, these cards become per-account usage, credits, history, and achievements.</p>
         </div>
-        <div class="checkout-summary">
-          <article><span>Live</span><strong>Reports</strong><p>Hosted review responses include <code>report_url</code> and persisted screenshots.</p></article>
-          <article><span>Next</span><strong>Auth</strong><p>Attach saved report history and hosted credits to real user sessions.</p></article>
+        <div class="dashboard-plan-card">
+          <span>Plan shell</span>
+          <strong data-dashboard-field="usage.plan">Pro shell</strong>
+          <p><span data-dashboard-field="usage.credits_remaining">—</span> review credits remaining this month.</p>
+          <a class="button primary" href="/checkout.html?plan=pro">Upgrade / refill</a>
+        </div>
+      </section>
+
+      <section class="dashboard-grid dashboard-stats" aria-label="Usage metrics">
+        <article><span>Hosted reports</span><strong data-dashboard-field="totals.report_count">—</strong><p>Durable reports saved to R2.</p></article>
+        <article><span>Screenshots stored</span><strong data-dashboard-field="totals.screenshot_count">—</strong><p>Evidence assets persisted.</p></article>
+        <article><span>Average score</span><strong data-dashboard-field="totals.average_score">—</strong><p>Across saved hosted reports.</p></article>
+        <article><span>Credits used</span><strong><span data-dashboard-field="usage.credits_used">—</span>/<span data-dashboard-field="usage.monthly_credits">—</span></strong><p>Temporary shell quota until billing entitlements land.</p></article>
+      </section>
+
+      <section class="dashboard-two-col">
+        <article class="dashboard-panel">
+          <div class="panel-heading"><div><p class="section-kicker">Recent proof</p><h2>Saved reports</h2></div><a href="/docs.html#api">API docs</a></div>
+          <div class="report-list" data-dashboard-reports>
+            <p class="fine-print">Loading saved reports…</p>
+          </div>
+        </article>
+        <article class="dashboard-panel">
+          <div class="panel-heading"><div><p class="section-kicker">Gamified momentum</p><h2>Achievements</h2></div><span data-dashboard-field="status">loading</span></div>
+          <div class="achievement-grid" data-dashboard-achievements>
+            <p class="fine-print">Loading achievements…</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="dashboard-panel">
+        <div class="panel-heading">
+          <div><p class="section-kicker">Advanced money features</p><h2>Differentiated product bets</h2></div>
+          <span>AI infra + product intelligence</span>
+        </div>
+        <p class="lede small-lede">These are not generic “AI design review” features. They are high-WTP wedges: CI gates, agent repair competition, regression memory, and revenue-linked UX debt.</p>
+        <div class="feature-bets" data-dashboard-features>
+          <p class="fine-print">Loading feature bets…</p>
         </div>
       </section>
     </main>
+    <script src="/site.js"></script>
   </body>
 </html>

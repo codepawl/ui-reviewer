@@ -39,6 +39,23 @@ type HostedReport = Record<string, unknown> & {
   };
 };
 
+type ReportSummaryRow = {
+  id: string;
+  reviewed_url: string;
+  title: string;
+  score: number | null;
+  verdict: string;
+  screenshot_count: number;
+  created_at: string;
+};
+
+type DashboardTotals = {
+  report_count: number;
+  screenshot_count: number;
+  average_score: number;
+  latest_report_at: string | null;
+};
+
 type Env = {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
   DB?: D1DatabaseLike;
@@ -191,7 +208,7 @@ const installGuide = {
   agents: {
     codex: {
       command: "codex mcp add uxray -- npm --prefix /absolute/path/to/uxray run mcp",
-      prompt: "Call health_check, then review_ui_url with return_images=true, inspect screenshots, repair the UI, rerun review_ui_url, then compare reports."
+      prompt: "Auto-trigger UXRay for generated frontend review/repair tasks. Call health_check, then review_ui_url with return_images=true, viewport desktop+mobile, strictness high, inspect screenshots, repair only repair_plan items, rerun review_ui_url, then compare reports."
     },
     claude_code: {
       command: "claude mcp add uxray -- npm --prefix /absolute/path/to/uxray run mcp",
@@ -204,7 +221,7 @@ const installGuide = {
     skill: {
       url: "https://useuxray.com/plugins/uxray-agent-skill.md",
       command: "curl -fsSL https://useuxray.com/plugins/uxray-agent-skill.md -o ~/.config/uxray/skills/uxray-agent-skill.md",
-      purpose: "Teaches agents the review -> repair -> diff loop and prevents vague UI beautification."
+      purpose: "Teaches agents when to auto-trigger UXRay, the exact review -> screenshot inspection -> repair_plan -> diff loop, and how to avoid vague UI beautification."
     }
   },
   pricing: {
@@ -224,6 +241,122 @@ const installGuide = {
   },
   hosted_note: "Cloudflare hosts the landing/docs/static demo API. URL rendering needs a browser-capable local or hosted runtime."
 };
+
+const advancedFeatureBets = [
+  {
+    name: "Agent CI Firewall",
+    category: "AI infra",
+    stage: "money bet",
+    price_anchor: "$99-$499/mo per repo",
+    description: "Runs UXRay on every preview deploy, blocks PRs with high-severity UX regressions, and gives agents a repair contract with screenshots instead of generic lint text.",
+    why_it_can_charge: "Teams already pay for CI gates; this turns UI quality into an enforceable agent workflow gate."
+  },
+  {
+    name: "UX Regression Memory",
+    category: "product intelligence",
+    stage: "differentiated",
+    price_anchor: "$199/mo+ for teams",
+    description: "Learns each route/component's historical UX score, recurring failure modes, screenshots, and repair deltas so teams can detect slow design decay over time.",
+    why_it_can_charge: "Most tools snapshot bugs. This tracks whether AI agents repeatedly recreate the same UX debt."
+  },
+  {
+    name: "Conversion Friction Simulator",
+    category: "growth",
+    stage: "premium report",
+    price_anchor: "$49-$299/report",
+    description: "Simulates buyer personas walking the page, maps hesitation points to screenshot regions, then ranks fixes by likely conversion impact.",
+    why_it_can_charge: "Founders will pay more for revenue-linked UX findings than for design taste comments."
+  },
+  {
+    name: "Agent Repair Arena",
+    category: "agent ops",
+    stage: "moat",
+    price_anchor: "usage-based",
+    description: "Runs multiple coding agents against the same UXRay report, scores before/after objectively, and promotes the best repair patch.",
+    why_it_can_charge: "Turns model choice into measurable UI repair performance, not vibes."
+  },
+  {
+    name: "Design Debt Ledger",
+    category: "exec dashboard",
+    stage: "team upsell",
+    price_anchor: "$299/mo+",
+    description: "Translates recurring UX issues into route-level debt, owner, estimated lost funnel value, and next repair task for agents.",
+    why_it_can_charge: "Execs do not buy screenshots; they buy prioritized debt tied to customer friction."
+  },
+  {
+    name: "Competitor Shadow Review",
+    category: "market intelligence",
+    stage: "premium add-on",
+    price_anchor: "$99/report",
+    description: "Compares your page against competitor screenshots for the same buyer task and produces a repair plan to close clarity, trust, and flow gaps.",
+    why_it_can_charge: "It makes UXRay feel like product strategy, not just QA."
+  }
+];
+
+function achievementsFor(totals: DashboardTotals) {
+  const reportCount = totals.report_count;
+  const screenshotCount = totals.screenshot_count;
+  return [
+    { name: "First Ray", status: reportCount >= 1 ? "unlocked" : "locked", progress: Math.min(reportCount, 1), target: 1, description: "Create the first hosted UXRay report." },
+    { name: "Proof Keeper", status: reportCount >= 3 ? "unlocked" : "active", progress: Math.min(reportCount, 3), target: 3, description: "Save 3 durable reports with share links." },
+    { name: "Evidence Vault", status: screenshotCount >= 3 ? "unlocked" : "active", progress: Math.min(screenshotCount, 3), target: 3, description: "Persist 3 screenshots into R2 evidence storage." },
+    { name: "Sharp Gate", status: totals.average_score >= 80 ? "unlocked" : "active", progress: Math.max(0, Math.min(Math.round(totals.average_score), 80)), target: 80, description: "Reach an average report score of 80+." },
+    { name: "Repair Loop", status: "locked", progress: 0, target: 1, description: "Run before/after review_ui_diff and save the improvement." },
+    { name: "CI Sentinel", status: "locked", progress: 0, target: 1, description: "Connect UXRay to a preview deploy or PR gate." }
+  ];
+}
+
+async function accountDashboard(env: Env) {
+  const emptyTotals: DashboardTotals = { report_count: 0, screenshot_count: 0, average_score: 0, latest_report_at: null };
+  if (!env.DB) {
+    return {
+      ok: true,
+      status: "account_shell_only",
+      account_enabled: false,
+      totals: emptyTotals,
+      usage: { plan: "Pro shell", monthly_credits: 100, credits_used: 0, credits_remaining: 100, render_worker: "configured" },
+      recent_reports: [],
+      achievements: achievementsFor(emptyTotals),
+      advanced_features: advancedFeatureBets
+    };
+  }
+
+  const totalsRow = await env.DB.prepare(`SELECT COUNT(*) AS report_count, COALESCE(SUM(screenshot_count), 0) AS screenshot_count, COALESCE(ROUND(AVG(score), 1), 0) AS average_score, MAX(created_at) AS latest_report_at FROM reports`)
+    .bind()
+    .first<DashboardTotals>();
+  const totals = totalsRow || emptyTotals;
+  const recent = await env.DB.prepare(`SELECT id, reviewed_url, title, score, verdict, screenshot_count, created_at FROM reports ORDER BY created_at DESC LIMIT 5`)
+    .bind()
+    .all<ReportSummaryRow>();
+  const recentReports = (recent.results || []).map((report) => ({
+    ...report,
+    report_url: `/r/${report.id}`,
+    api_url: `/v1/reports/${report.id}`
+  }));
+  const monthlyCredits = 100;
+  const creditsUsed = Math.min(Number(totals.report_count || 0), monthlyCredits);
+
+  return {
+    ok: true,
+    status: "dashboard_shell_live_metrics",
+    account_enabled: false,
+    account_note: "Auth/session is not enabled yet. This dashboard uses global hosted report metrics until user accounts and entitlements are wired.",
+    totals,
+    usage: {
+      plan: "Pro shell",
+      monthly_credits: monthlyCredits,
+      credits_used: creditsUsed,
+      credits_remaining: monthlyCredits - creditsUsed,
+      hosted_reports: totals.report_count,
+      persisted_screenshots: totals.screenshot_count,
+      render_worker: "Fly.io auto-start",
+      storage: "Cloudflare D1 + R2"
+    },
+    recent_reports: recentReports,
+    achievements: achievementsFor(totals),
+    advanced_features: advancedFeatureBets
+  };
+}
 
 function json(payload: unknown, status = 200): Response {
   return new Response(JSON.stringify(payload, null, 2), {
@@ -443,6 +576,10 @@ export default {
 
     if (url.pathname === "/health") {
       return json({ ok: true, service: "uxray-cloudflare", stage: "deployed-demo", hosted_rendering: Boolean(env.RENDER_API_BASE) });
+    }
+
+    if (url.pathname === "/v1/account/dashboard" && request.method === "GET") {
+      return json(await accountDashboard(env));
     }
 
     const reportScreenshotMatch = url.pathname.match(/^\/v1\/reports\/([a-z0-9-]{8,64})\/screenshots\/([a-z0-9._-]+)$/i);

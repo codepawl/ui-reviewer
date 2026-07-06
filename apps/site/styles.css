@@ -246,6 +246,39 @@ pre { margin: 0; overflow-x: auto; padding: 22px; color: #eadfce; font-size: 13p
 .report-issues { display: grid; gap: 12px; padding-left: 18px; }
 .report-issues li strong { display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .06em; font-size: 12px; color: var(--accent); }
 .report-issues li span { color: var(--ink-soft); }
+.account-dashboard { padding-top: 112px; padding-bottom: 80px; }
+.dashboard-hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, .7fr); gap: 24px; align-items: stretch; margin-bottom: 22px; }
+.dashboard-plan-card, .dashboard-panel, .dashboard-stats article { border: 1px solid var(--line); border-radius: 28px; background: linear-gradient(180deg, rgba(246,239,228,.075), rgba(246,239,228,.03)); box-shadow: var(--shadow-soft); }
+.dashboard-plan-card { padding: 22px; display: grid; gap: 12px; align-content: start; }
+.dashboard-plan-card span, .dashboard-stats span, .panel-heading span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; font-weight: 800; }
+.dashboard-plan-card strong { font-size: clamp(28px, 4vw, 46px); letter-spacing: -.05em; }
+.dashboard-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 22px; }
+.dashboard-stats article { padding: 18px; }
+.dashboard-stats strong { display: block; margin: 8px 0; font-size: clamp(28px, 3vw, 44px); letter-spacing: -.05em; color: var(--ink); }
+.dashboard-stats p, .dashboard-plan-card p, .feature-bet p, .achievement-card p { color: var(--ink-soft); margin: 0; }
+.dashboard-two-col { display: grid; grid-template-columns: 1.1fr .9fr; gap: 18px; margin-bottom: 18px; }
+.dashboard-panel { padding: 20px; }
+.panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
+.panel-heading h2 { margin: 4px 0 0; letter-spacing: -.04em; }
+.panel-heading a { color: var(--accent); font-weight: 800; text-decoration: none; }
+.report-list { display: grid; gap: 10px; }
+.report-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 18px; background: rgba(0,0,0,.18); color: var(--ink); text-decoration: none; }
+.report-row span { display: grid; gap: 4px; min-width: 0; }
+.report-row small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.report-row b { font-size: 28px; text-align: right; }
+.achievement-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.achievement-card { padding: 14px; border: 1px solid var(--line); border-radius: 18px; background: rgba(0,0,0,.16); }
+.achievement-card.unlocked { border-color: rgba(152, 255, 196, .44); background: rgba(86, 211, 140, .08); }
+.achievement-card div:first-child { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.achievement-card div:first-child span { color: var(--accent); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+.progress { height: 8px; overflow: hidden; border-radius: 999px; background: rgba(246,239,228,.08); margin: 12px 0 8px; }
+.progress i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--green)); }
+.feature-bets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.feature-bet { padding: 16px; border: 1px solid var(--line); border-radius: 20px; background: rgba(0,0,0,.16); }
+.feature-bet div { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.feature-bet h3 { margin: 14px 0 8px; letter-spacing: -.03em; }
+.feature-bet small { display: block; margin-top: 12px; color: var(--accent); line-height: 1.5; }
+.small-lede { font-size: 16px; max-width: 820px; }
 .update-banner { position: fixed; left: 18px; right: 18px; bottom: 18px; z-index: 45; display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: 12px; max-width: 1120px; margin: 0 auto; padding: 14px; border: 1px solid var(--line-strong); border-radius: 22px; background: rgba(16,15,13,.92); box-shadow: 0 20px 80px rgba(0,0,0,.34); backdrop-filter: blur(18px); }
 .update-banner strong { display: block; color: var(--ink); letter-spacing: -.02em; }
 .update-banner span { color: var(--muted); font-size: 13px; }
@@ -285,6 +318,8 @@ pre { margin: 0; overflow-x: auto; padding: 22px; color: #eadfce; font-size: 13p
   .proof { padding: 32px; }
   .case-copy { position: static; }
   .pricing-grid { grid-template-columns: 1fr; }
+  .dashboard-hero, .dashboard-two-col, .feature-bets { grid-template-columns: 1fr; }
+  .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .update-banner { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
@@ -301,6 +336,9 @@ pre { margin: 0; overflow-x: auto; padding: 22px; color: #eadfce; font-size: 13p
   .share-actions button { min-height: 40px; padding-inline: 10px; }
   .uxray-dialog-card { padding: 24px; }
   .share-grid, .copy-row { grid-template-columns: 1fr; }
+  .dashboard-grid, .achievement-grid, .report-row { grid-template-columns: 1fr; }
+  .report-row b { text-align: left; }
+  .account-dashboard { padding-top: 92px; }
   .update-banner { bottom: 76px; }
 }
 @media (prefers-reduced-motion: reduce) {
