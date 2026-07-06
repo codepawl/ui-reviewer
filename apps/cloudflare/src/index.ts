@@ -60,6 +60,8 @@ type AccountSession = {
   email: string;
   plan: string;
   status: string;
+  verified_at?: string | null;
+  auth_method?: "session" | "api_key";
 };
 
 type EntitlementRow = {
@@ -69,6 +71,15 @@ type EntitlementRow = {
   credits_remaining: number;
   provider?: string;
   updated_at: string;
+  verified_at?: string | null;
+};
+
+type ApiKeyRow = {
+  label: string;
+  prefix: string;
+  created_at: string;
+  last_used_at?: string | null;
+  revoked_at?: string | null;
 };
 
 type Env = {
@@ -77,6 +88,7 @@ type Env = {
   REPORTS?: R2BucketLike;
   CREEM_API_KEY?: string;
   CREEM_API_BASE?: string;
+  CREEM_WEBHOOK_SECRET?: string;
   RENDER_API_BASE?: string;
   RENDER_API_TOKEN?: string;
 };
@@ -294,6 +306,47 @@ function newToken(): string {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
+function newApiKey(): string {
+  return `uxr_${newToken()}${newToken().slice(0, 10)}`;
+}
+
+function apiKeyFromRequest(request: Request): string | null {
+  const authorization = request.headers.get("authorization") || "";
+  if (authorization.toLowerCase().startsWith("bearer ")) return authorization.slice(7).trim();
+  const explicit = request.headers.get("x-uxray-api-key");
+  return explicit ? explicit.trim() : null;
+}
+
+function timingSafeEqual(left: string, right: string): boolean {
+  if (left.length !== right.length) return false;
+  let diff = 0;
+  for (let index = 0; index < left.length; index += 1) diff |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  return diff === 0;
+}
+
+async function hmacSha256Hex(secret: string, payload: string): Promise<string> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
+  return [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function extractSignature(headers: Headers): string | null {
+  const raw = headers.get("x-creem-signature") || headers.get("creem-signature") || headers.get("stripe-signature") || "";
+  const v1 = raw.match(/(?:^|,)v1=([a-f0-9]+)/i)?.[1];
+  const sha = raw.match(/sha256=([a-f0-9]+)/i)?.[1];
+  return (v1 || sha || raw).trim() || null;
+}
+
+async function verifyCreemSignature(request: Request, env: Env, rawBody: string): Promise<{ verified: boolean; status: string }> {
+  if (!env.CREEM_WEBHOOK_SECRET) return { verified: false, status: "signature_not_configured" };
+  const provided = extractSignature(request.headers);
+  if (!provided) return { verified: false, status: "signature_missing" };
+  const expected = await hmacSha256Hex(env.CREEM_WEBHOOK_SECRET, rawBody);
+  return timingSafeEqual(provided.toLowerCase(), expected.toLowerCase())
+    ? { verified: true, status: "signature_verified" }
+    : { verified: false, status: "signature_invalid" };
+}
+
 function sessionCookie(token: string, maxAge = 60 * 60 * 24 * 30): string {
   return `uxray_session=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Lax`;
 }
@@ -317,19 +370,19 @@ async function readRequestFields(request: Request): Promise<Record<string, strin
   return {};
 }
 
-async function upsertAccount(env: Env, email: string, plan: string = "free"): Promise<void> {
+async function upsertAccount(env: Env, email: string, plan: string = "free", verifiedAt?: string | null): Promise<void> {
   if (!env.DB) return;
   const timestamp = nowIso();
-  await env.DB.prepare(`INSERT INTO accounts (email, created_at, last_seen_at, plan, status) VALUES (?, ?, ?, ?, 'active') ON CONFLICT(email) DO UPDATE SET last_seen_at = excluded.last_seen_at, plan = CASE WHEN accounts.plan = 'free' THEN excluded.plan ELSE accounts.plan END`)
-    .bind(email, timestamp, timestamp, plan)
+  await env.DB.prepare(`INSERT INTO accounts (email, created_at, last_seen_at, plan, status, verified_at) VALUES (?, ?, ?, ?, 'active', ?) ON CONFLICT(email) DO UPDATE SET last_seen_at = excluded.last_seen_at, plan = CASE WHEN accounts.plan = 'free' THEN excluded.plan ELSE accounts.plan END, verified_at = COALESCE(accounts.verified_at, excluded.verified_at)`)
+    .bind(email, timestamp, timestamp, plan, verifiedAt || null)
     .run();
 }
 
-async function ensureEntitlement(env: Env, email: string, plan: string, status = "checkout_started", provider = "creem"): Promise<void> {
+async function ensureEntitlement(env: Env, email: string, plan: string, status = "checkout_started", provider = "creem", verifiedAt?: string | null): Promise<void> {
   if (!env.DB) return;
   const credits = planCredits(plan);
-  await env.DB.prepare(`INSERT INTO entitlements (account_email, plan, status, monthly_credits, credits_remaining, provider, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(account_email, plan) DO UPDATE SET status = excluded.status, monthly_credits = excluded.monthly_credits, credits_remaining = MAX(entitlements.credits_remaining, excluded.credits_remaining), provider = excluded.provider, updated_at = excluded.updated_at`)
-    .bind(email, plan, status, credits, credits, provider, nowIso())
+  await env.DB.prepare(`INSERT INTO entitlements (account_email, plan, status, monthly_credits, credits_remaining, provider, updated_at, verified_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(account_email, plan) DO UPDATE SET status = excluded.status, monthly_credits = excluded.monthly_credits, credits_remaining = CASE WHEN excluded.status = 'active' THEN MAX(entitlements.credits_remaining, excluded.credits_remaining) ELSE entitlements.credits_remaining END, provider = excluded.provider, updated_at = excluded.updated_at, verified_at = COALESCE(entitlements.verified_at, excluded.verified_at)`)
+    .bind(email, plan, status, credits, credits, provider, nowIso(), verifiedAt || null)
     .run();
 }
 
@@ -352,15 +405,73 @@ async function createSession(env: Env, email: string): Promise<string | null> {
   return token;
 }
 
+async function createMagicLink(env: Env, email: string, purpose = "login"): Promise<string | null> {
+  if (!env.DB) return null;
+  const token = newToken();
+  const tokenHash = await sha256Hex(token);
+  await env.DB.prepare(`INSERT INTO magic_links (token_hash, account_email, purpose, created_at, expires_at) VALUES (?, ?, ?, ?, ?)`)
+    .bind(tokenHash, email, purpose, nowIso(), new Date(Date.now() + 1000 * 60 * 15).toISOString())
+    .run();
+  return token;
+}
+
+async function consumeMagicLink(env: Env, token: string): Promise<string | null> {
+  if (!env.DB || !token) return null;
+  const tokenHash = await sha256Hex(token);
+  const row = await env.DB.prepare(`SELECT account_email AS email FROM magic_links WHERE token_hash = ? AND consumed_at IS NULL AND expires_at > ? LIMIT 1`)
+    .bind(tokenHash, nowIso())
+    .first<{ email: string }>();
+  if (!row?.email) return null;
+  const verifiedAt = nowIso();
+  await env.DB.prepare(`UPDATE magic_links SET consumed_at = ? WHERE token_hash = ?`)
+    .bind(verifiedAt, tokenHash)
+    .run();
+  await upsertAccount(env, row.email, "free", verifiedAt);
+  await logUsage(env, row.email, "magic_link_verified", 0);
+  return row.email;
+}
+
 async function getCurrentAccount(request: Request, env: Env): Promise<AccountSession | null> {
   if (!env.DB) return null;
+  const apiKey = apiKeyFromRequest(request);
+  if (apiKey) {
+    const keyHash = await sha256Hex(apiKey);
+    const account = await env.DB.prepare(`SELECT accounts.email AS email, accounts.plan AS plan, accounts.status AS status, accounts.verified_at AS verified_at FROM api_keys JOIN accounts ON accounts.email = api_keys.account_email WHERE api_keys.key_hash = ? AND api_keys.revoked_at IS NULL LIMIT 1`)
+      .bind(keyHash)
+      .first<AccountSession>();
+    if (account) {
+      await env.DB.prepare(`UPDATE api_keys SET last_used_at = ? WHERE key_hash = ?`)
+        .bind(nowIso(), keyHash)
+        .run();
+      return { ...account, auth_method: "api_key" };
+    }
+  }
+
   const token = parseCookies(request).uxray_session;
   if (!token) return null;
   const tokenHash = await sha256Hex(token);
-  const account = await env.DB.prepare(`SELECT accounts.email AS email, accounts.plan AS plan, accounts.status AS status FROM sessions JOIN accounts ON accounts.email = sessions.account_email WHERE sessions.token_hash = ? AND sessions.expires_at > ? LIMIT 1`)
+  const account = await env.DB.prepare(`SELECT accounts.email AS email, accounts.plan AS plan, accounts.status AS status, accounts.verified_at AS verified_at FROM sessions JOIN accounts ON accounts.email = sessions.account_email WHERE sessions.token_hash = ? AND sessions.expires_at > ? LIMIT 1`)
     .bind(tokenHash, nowIso())
     .first<AccountSession>();
-  return account || null;
+  return account ? { ...account, auth_method: "session" } : null;
+}
+
+async function activeEntitlement(env: Env, email: string): Promise<EntitlementRow | null> {
+  if (!env.DB) return null;
+  return await env.DB.prepare(`SELECT plan, status, monthly_credits, credits_remaining, provider, updated_at, verified_at FROM entitlements WHERE account_email = ? AND status = 'active' AND credits_remaining > 0 ORDER BY updated_at DESC LIMIT 1`)
+    .bind(email)
+    .first<EntitlementRow>();
+}
+
+async function createAccountApiKey(env: Env, email: string, label: string): Promise<{ key: string; prefix: string } | null> {
+  if (!env.DB) return null;
+  const key = newApiKey();
+  const prefix = key.slice(0, 12);
+  await env.DB.prepare(`INSERT INTO api_keys (key_hash, account_email, label, prefix, created_at) VALUES (?, ?, ?, ?, ?)`)
+    .bind(await sha256Hex(key), email, label || "Default", prefix, nowIso())
+    .run();
+  await logUsage(env, email, "api_key_created", 0, prefix, { label });
+  return { key, prefix };
 }
 
 const advancedFeatureBets = [
@@ -445,10 +556,16 @@ async function accountDashboard(request: Request, env: Env) {
   }
 
   const entitlement = account
-    ? await env.DB.prepare(`SELECT plan, status, monthly_credits, credits_remaining, provider, updated_at FROM entitlements WHERE account_email = ? ORDER BY updated_at DESC LIMIT 1`)
+    ? await env.DB.prepare(`SELECT plan, status, monthly_credits, credits_remaining, provider, updated_at, verified_at FROM entitlements WHERE account_email = ? ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END, updated_at DESC LIMIT 1`)
       .bind(account.email)
       .first<EntitlementRow>()
     : null;
+
+  const keys = account
+    ? await env.DB.prepare(`SELECT label, prefix, created_at, last_used_at, revoked_at FROM api_keys WHERE account_email = ? ORDER BY created_at DESC LIMIT 10`)
+      .bind(account.email)
+      .all<ApiKeyRow>()
+    : { results: [] as ApiKeyRow[] };
 
   const totalsRow = account
     ? await env.DB.prepare(`SELECT COUNT(*) AS report_count, COALESCE(SUM(screenshot_count), 0) AS screenshot_count, COALESCE(ROUND(AVG(score), 1), 0) AS average_score, MAX(created_at) AS latest_report_at FROM reports WHERE account_email = ?`)
@@ -484,6 +601,7 @@ async function accountDashboard(request: Request, env: Env) {
       ? "Email session is active. Email verification and production auth hardening are still pending."
       : "No session cookie found. Showing global hosted report metrics as a public preview.",
     entitlement,
+    api_keys: keys.results || [],
     totals,
     usage: {
       plan: entitlement?.plan || account?.plan || "Global preview",
@@ -510,7 +628,7 @@ function json(payload: unknown, status = 200): Response {
       "cache-control": "no-store",
       "access-control-allow-origin": "*",
       "access-control-allow-methods": "GET,POST,OPTIONS",
-      "access-control-allow-headers": "content-type"
+      "access-control-allow-headers": "content-type, authorization, x-uxray-api-key"
     }
   });
 }
@@ -564,7 +682,7 @@ async function loadReport(env: Env, id: string): Promise<HostedReport | null> {
   return await new Response(object.body).json() as HostedReport;
 }
 
-async function persistHostedReport(payload: HostedReport, env: Env, origin: string, accountEmail?: string | null): Promise<HostedReport> {
+async function persistHostedReport(payload: HostedReport, env: Env, origin: string, accountEmail?: string | null, debitCredits = false): Promise<HostedReport> {
   if (!env.REPORTS || !payload.rendered_context) return payload;
 
   const id = crypto.randomUUID().replace(/-/g, "").slice(0, 20);
@@ -622,9 +740,9 @@ async function persistHostedReport(payload: HostedReport, env: Env, origin: stri
         accountEmail || null
       )
       .run();
-    if (accountEmail) {
+    if (accountEmail && debitCredits) {
       await logUsage(env, accountEmail, "hosted_review", 1, id, { reviewed_url: stored.reviewed_url, score: stored.score });
-      await env.DB.prepare(`UPDATE entitlements SET credits_remaining = CASE WHEN credits_remaining > 0 THEN credits_remaining - 1 ELSE 0 END, updated_at = ? WHERE account_email = ? AND credits_remaining > 0`)
+      await env.DB.prepare(`UPDATE entitlements SET credits_remaining = CASE WHEN credits_remaining > 0 THEN credits_remaining - 1 ELSE 0 END, updated_at = ? WHERE account_email = ? AND status = 'active' AND credits_remaining > 0`)
         .bind(nowIso(), accountEmail)
         .run();
     }
@@ -692,6 +810,16 @@ async function readJson(request: Request): Promise<unknown> {
 async function proxyRenderRequest(request: Request, env: Env, origin: string): Promise<Response | null> {
   if (!env.RENDER_API_BASE) return null;
   const account = await getCurrentAccount(request, env);
+  const entitlement = account ? await activeEntitlement(env, account.email) : null;
+  if (account && !entitlement) {
+    return json({
+      error: "active_credits_required",
+      message: "Hosted reviews for logged-in/API-key accounts require an active entitlement with credits remaining.",
+      account_email: account.email,
+      auth_method: account.auth_method,
+      checkout: "/checkout.html"
+    }, 402);
+  }
 
   const upstreamUrl = new URL("/v1/reviews/url", env.RENDER_API_BASE.replace(/\/$/, ""));
   const headers = new Headers({ "content-type": "application/json" });
@@ -715,7 +843,7 @@ async function proxyRenderRequest(request: Request, env: Env, origin: string): P
     return json(payload, upstream.status);
   }
 
-  const persisted = await persistHostedReport(payload as HostedReport, env, origin, account?.email);
+  const persisted = await persistHostedReport(payload as HostedReport, env, origin, account?.email, Boolean(entitlement));
   return json(persisted, upstream.status);
 }
 
@@ -793,9 +921,11 @@ export default {
     }
 
     if (url.pathname === "/v1/billing/creem/webhook" && request.method === "POST") {
+      const rawBody = await request.text();
+      const signature = await verifyCreemSignature(request, env, rawBody);
       let event: unknown = null;
       try {
-        event = await request.json();
+        event = rawBody ? JSON.parse(rawBody) : null;
       } catch {
         event = null;
       }
@@ -808,17 +938,23 @@ export default {
       const email = normalizeEmail(record.customer?.email || record.customer_email || record.email || record.metadata?.email);
       const plan = normalizePlan(record.metadata?.plan || record.plan || record.product?.name || record.product_id);
       const eventId = String(record.id || record.event_id || crypto.randomUUID());
+      const verifiedAt = signature.verified ? nowIso() : null;
+      const eventStatus = signature.verified ? "webhook_verified" : signature.status;
+      const entitlementStatus = signature.verified ? "active" : "webhook_received_unverified";
       if (env.DB) {
-        await env.DB.prepare(`INSERT OR REPLACE INTO billing_events (id, provider, event_type, account_email, plan, status, payload_json, received_at) VALUES (?, 'creem', ?, ?, ?, ?, ?, ?)`)
-          .bind(eventId, eventType, email, plan, "webhook_received_unverified", JSON.stringify(record), nowIso())
+        await env.DB.prepare(`INSERT OR REPLACE INTO billing_events (id, provider, event_type, account_email, plan, status, payload_json, received_at, verified_at, signature_status) VALUES (?, 'creem', ?, ?, ?, ?, ?, ?, ?, ?)`)
+          .bind(eventId, eventType, email, plan, eventStatus, JSON.stringify(record), nowIso(), verifiedAt, signature.status)
           .run();
-        if (email) {
-          await upsertAccount(env, email, plan);
-          await ensureEntitlement(env, email, plan, "webhook_received_unverified", "creem");
-          await logUsage(env, email, "creem_webhook_received", 0, eventId, { event_type: eventType, plan });
+        if (email && signature.status !== "signature_invalid") {
+          await upsertAccount(env, email, plan, verifiedAt);
+          await ensureEntitlement(env, email, plan, entitlementStatus, "creem", verifiedAt);
+          await logUsage(env, email, signature.verified ? "creem_webhook_verified" : "creem_webhook_received", 0, eventId, { event_type: eventType, plan, signature_status: signature.status });
         }
       }
-      return json({ ok: true, provider: "creem", received: true, event_type: eventType, account_email: email, plan, status: "recorded_unverified" });
+      if (env.CREEM_WEBHOOK_SECRET && !signature.verified) {
+        return json({ ok: false, provider: "creem", received: true, event_type: eventType, account_email: email, plan, status: signature.status }, 401);
+      }
+      return json({ ok: true, provider: "creem", received: true, event_type: eventType, account_email: email, plan, status: signature.verified ? "recorded_verified" : "recorded_unverified", signature_status: signature.status });
     }
 
     if (url.pathname === "/v1/billing/checkout" && (request.method === "GET" || request.method === "POST")) {
@@ -845,6 +981,8 @@ export default {
       const normalizedEmail = normalizeEmail(email);
       let sessionToken: string | null = null;
       if (normalizedEmail) {
+        await upsertAccount(env, normalizedEmail, "free");
+        await ensureEntitlement(env, normalizedEmail, "free", "active", "uxray");
         await upsertAccount(env, normalizedEmail, normalizedPlan);
         await ensureEntitlement(env, normalizedEmail, normalizedPlan, "checkout_started", "creem");
         await logUsage(env, normalizedEmail, "checkout_started", 0, undefined, { plan: normalizedPlan });
@@ -858,6 +996,57 @@ export default {
       const checkoutUrl = new URL(creemCheckoutUrl(normalizedPlan));
       if (email) checkoutUrl.searchParams.set("email", email);
       return sessionToken ? redirectWithCookie(checkoutUrl.toString(), sessionCookie(sessionToken)) : redirect(checkoutUrl.toString());
+    }
+
+    if (url.pathname === "/v1/auth/magic-link" && request.method === "POST") {
+      const fields = await readRequestFields(request);
+      const email = normalizeEmail(fields.email);
+      if (!email) return json({ ok: false, error: "invalid_email", message: "Enter a valid email address." }, 400);
+      await upsertAccount(env, email, "free");
+      await ensureEntitlement(env, email, "free", "active", "uxray");
+      const token = await createMagicLink(env, email, fields.purpose || "login");
+      if (!token) return json({ ok: false, error: "auth_storage_unavailable" }, 503);
+      const verifyUrl = new URL("/v1/auth/verify", url.origin);
+      verifyUrl.searchParams.set("token", token);
+      return json({
+        ok: true,
+        email,
+        status: "magic_link_created",
+        delivery: "email_not_configured",
+        message: "Email delivery is not wired yet; use verify_url for this foundation slice.",
+        verify_url: verifyUrl.toString(),
+        expires_in_seconds: 900
+      });
+    }
+
+    if (url.pathname === "/v1/auth/verify" && request.method === "GET") {
+      const token = url.searchParams.get("token") || "";
+      const email = await consumeMagicLink(env, token);
+      if (!email) return json({ ok: false, error: "invalid_or_expired_magic_link" }, 400);
+      const sessionToken = await createSession(env, email);
+      const next = url.searchParams.get("next")?.startsWith("/") ? url.searchParams.get("next")! : "/account.html?verified=1";
+      return sessionToken ? redirectWithCookie(next, sessionCookie(sessionToken)) : redirect(next);
+    }
+
+    if (url.pathname === "/v1/account/api-keys" && request.method === "GET") {
+      const account = await getCurrentAccount(request, env);
+      if (!account) return json({ ok: false, error: "authentication_required" }, 401);
+      const keys = env.DB
+        ? await env.DB.prepare(`SELECT label, prefix, created_at, last_used_at, revoked_at FROM api_keys WHERE account_email = ? ORDER BY created_at DESC LIMIT 25`)
+          .bind(account.email)
+          .all<ApiKeyRow>()
+        : { results: [] as ApiKeyRow[] };
+      return json({ ok: true, account_email: account.email, api_keys: keys.results || [] });
+    }
+
+    if (url.pathname === "/v1/account/api-keys" && request.method === "POST") {
+      const account = await getCurrentAccount(request, env);
+      if (!account) return json({ ok: false, error: "authentication_required" }, 401);
+      if (!account.verified_at) return json({ ok: false, error: "verified_account_required", message: "Verify email with a magic link before creating API keys." }, 403);
+      const fields = await readRequestFields(request);
+      const created = await createAccountApiKey(env, account.email, fields.label || "Default MCP key");
+      if (!created) return json({ ok: false, error: "api_key_storage_unavailable" }, 503);
+      return json({ ok: true, account_email: account.email, prefix: created.prefix, api_key: created.key, warning: "Store this key now. UXRay only returns it once." }, 201);
     }
 
     if (url.pathname === "/v1/auth/session" && request.method === "GET") {
@@ -876,8 +1065,10 @@ export default {
       const email = normalizeEmail(fields.email);
       if (!email) return json({ ok: false, error: "invalid_email", message: "Enter a valid email address." }, 400);
       const plan = normalizePlan(fields.plan);
-      await upsertAccount(env, email, url.pathname.endsWith("register") ? plan : "free");
+      await upsertAccount(env, email, "free");
+      await ensureEntitlement(env, email, "free", "active", "uxray");
       if (url.pathname.endsWith("register")) {
+        await upsertAccount(env, email, plan);
         await ensureEntitlement(env, email, plan, "checkout_started", "creem");
         await logUsage(env, email, "account_registered", 0, undefined, { plan, use_case: fields.use_case || "" });
       } else {

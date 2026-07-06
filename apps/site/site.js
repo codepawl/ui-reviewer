@@ -253,6 +253,18 @@
       }
 
       const features = root.querySelector('[data-dashboard-features]');
+      const apiKeys = root.querySelector('[data-dashboard-api-keys]');
+      if (apiKeys) {
+        const keys = dashboard.api_keys || [];
+        apiKeys.innerHTML = keys.length
+          ? keys.map((key) => `
+            <div class="report-row">
+              <span><strong>${escapeHtml(key.label || 'UXRay API key')}</strong><small>${escapeHtml(key.prefix || '')}••••</small></span>
+              <span><b>${escapeHtml(key.revoked_at ? 'revoked' : 'active')}</b><small>${escapeHtml(key.last_used_at || 'never used')}</small></span>
+            </div>`).join('')
+          : '<p class="fine-print">No API keys yet. Verify email, then POST /v1/account/api-keys to create one.</p>';
+      }
+
       if (features) {
         features.innerHTML = (dashboard.advanced_features || []).map((feature) => `
           <article class="feature-bet">
@@ -263,7 +275,7 @@
           </article>`).join('');
       }
     } catch (error) {
-      root.querySelectorAll('[data-dashboard-reports], [data-dashboard-achievements], [data-dashboard-features]').forEach((node) => {
+      root.querySelectorAll('[data-dashboard-reports], [data-dashboard-achievements], [data-dashboard-api-keys], [data-dashboard-features]').forEach((node) => {
         node.innerHTML = `<p class="fine-print">Dashboard failed to load: ${escapeHtml(error?.message || error)}</p>`;
       });
     }
