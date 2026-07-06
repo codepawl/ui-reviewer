@@ -113,6 +113,8 @@ export async function captureUiUrl(url: string, options: CaptureOptions = {}): P
     for (const viewportName of viewports) {
       const size = VIEWPORTS[viewportName];
       const page = await browser.newPage({ viewport: size });
+      page.setDefaultTimeout(60_000);
+      page.setDefaultNavigationTimeout(45_000);
       await page.goto(url, { waitUntil: "networkidle", timeout: 30_000 });
       title = await page.title();
       finalUrl = page.url();
@@ -218,7 +220,7 @@ export async function captureUiUrl(url: string, options: CaptureOptions = {}): P
         };
       })()`) as { document_scroll_width: number; body_scroll_width: number; layout_metrics: ViewportLayoutMetrics };
       const screenshotPath = path.join(outDir, `${slug(url)}-${viewportName}.png`);
-      await page.screenshot({ path: screenshotPath, fullPage: true });
+      await page.screenshot({ path: screenshotPath, fullPage: true, animations: "disabled", timeout: 60_000 });
       screenshots.push({
         name: viewportName,
         width: size.width,
