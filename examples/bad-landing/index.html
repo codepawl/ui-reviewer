@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bad UI Reviewer Landing</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #f6f7fb; color: #111827; }
+      main { max-width: 1180px; margin: 0 auto; }
+      .hero { padding: 36px 24px 24px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); gap: 14px; align-items: stretch; }
+      .card { background: white; border-radius: 18px; padding: 24px; box-shadow: 0 12px 30px rgba(15,23,42,.08); }
+      h1 { font-size: 42px; line-height: 1.03; margin: 0 0 14px; max-width: 760px; }
+      h2 { margin: 0 0 12px; }
+      p { color: #4b5563; line-height: 1.55; margin: 0; }
+      ul, ol { color: #374151; margin: 14px 0 0; padding-left: 20px; line-height: 1.55; }
+      li + li { margin-top: 8px; }
+      .cta-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+      a.button { display: inline-flex; align-items: center; min-height: 48px; padding: 13px 18px; border-radius: 999px; background: #111827; color: white; text-decoration: none; font-weight: 700; }
+      .eyebrow { display: block; color: #4f46e5; font-size: 13px; font-weight: 800; letter-spacing: .08em; margin-bottom: 12px; text-transform: uppercase; }
+      .dense { font-size: 15px; }
+      .sections { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 12px 24px 36px; }
+      @media (max-width: 640px) {
+        main { max-width: 100%; }
+        .hero { grid-template-columns: minmax(0, 1fr); padding: 18px; }
+        h1 { font-size: 34px; }
+        .card { padding: 24px; border-radius: 16px; }
+        .sections { grid-template-columns: minmax(0, 1fr); padding: 0 18px 28px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div class="card">
+          <span class="eyebrow">MCP UI reviewer</span>
+          <h1>Give coding agents concrete UX repair instructions.</h1>
+          <p>UI Reviewer renders your local frontend, checks desktop and mobile output, and returns structured MCP feedback that Codex, Lovable, Bolt, and Claude Code can use to fix AI-generated screens.</p>
+          <div class="cta-row">
+            <a class="button" href="#">Install the MCP server</a>
+          </div>
+        </div>
+        <div class="card dense">
+          <h2>Repair loop</h2>
+          <ol>
+            <li>Call <strong>review_ui_url</strong> against a local or staged page.</li>
+            <li>Receive prioritized issues with DOM context and screenshots.</li>
+            <li>Patch the UI, rerun the reviewer, and measure the score change.</li>
+          </ol>
+        </div>
+      </section>
+      <section class="sections">
+        <div class="card"><h2>Find blockers</h2><p>Catch unclear CTAs, broken task flow, clipped text, overflow, and mobile layout failures before handoff.</p></div>
+        <div class="card"><h2>Use screenshots</h2><p>Combine rendered desktop and mobile captures with DOM summaries so agents can repair what users actually see.</p></div>
+        <div class="card"><h2>Stay local</h2><p>Start with a small MCP-first loop for technical teams reviewing AI-generated frontend experiments.</p></div>
+      </section>
+    </main>
+  </body>
+</html>

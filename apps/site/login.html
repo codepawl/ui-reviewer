@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UXRay Login</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate icon" href="/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
+    <a class="back-home" href="/" aria-label="Back to UXRay homepage">← Back to homepage</a>
+    <main class="auth-main shell">
+      <section class="auth-card reveal">
+        <div>
+          <h1>Log in.</h1>
+          <p class="lede">Access MCP config, plugin packs, saved reports, and hosted review credits once accounts are enabled.</p>
+        </div>
+        <form class="auth-form" action="/v1/auth/login" method="post">
+          <label>Email<input type="email" name="email" placeholder="you@company.com" required /></label>
+          <label>Password<input type="password" name="password" placeholder="••••••••" required /></label>
+          <button class="button primary" type="submit">Continue</button>
+          <p class="fine-print">Billing is Creem-backed. Account entitlement delivery will attach here once hosted rendering is connected.</p>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

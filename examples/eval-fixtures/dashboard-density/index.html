@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard Density Trap</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #eef2ff; color: #111827; }
+      .shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
+      aside { background: #111827; color: white; padding: 18px; }
+      aside a { display: block; color: #d1d5db; text-decoration: none; padding: 9px 0; }
+      aside a.active { color: white; font-weight: 800; }
+      main { padding: 28px; min-width: 0; }
+      h1 { margin: 0 0 12px; font-size: clamp(28px, 4vw, 38px); }
+      p { color: #374151; line-height: 1.5; max-width: 760px; }
+      .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 18px 0; }
+      button { border: 0; border-radius: 10px; padding: 10px 12px; background: #4f46e5; color: white; font-weight: 700; }
+      .status { color: #6b7280; font-size: 14px; }
+      .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+      .card, table { background: white; border-radius: 16px; padding: 18px; box-shadow: 0 12px 28px rgba(15,23,42,.08); }
+      .card strong { display: block; margin-top: 6px; font-size: 22px; }
+      .table-wrap { margin-top: 18px; overflow-x: auto; border-radius: 16px; box-shadow: 0 12px 28px rgba(15,23,42,.08); }
+      table { width: 100%; border-collapse: collapse; box-shadow: none; }
+      td, th { padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+      tbody tr:last-child td { border-bottom: 0; }
+      @media (max-width: 640px) {
+        .shell { grid-template-columns: 1fr; }
+        aside { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 14px 16px; }
+        aside strong { width: 100%; }
+        aside a { padding: 6px 0; }
+        main { padding: 16px; }
+        .grid { grid-template-columns: 1fr 1fr; }
+        .table-wrap { overflow: visible; box-shadow: none; }
+        table, thead, tbody, tr, td { display: block; width: 100%; }
+        table { background: transparent; padding: 0; }
+        thead { display: none; }
+        tr { background: white; border-radius: 16px; box-shadow: 0 12px 28px rgba(15,23,42,.08); margin-bottom: 12px; padding: 8px 0; }
+        td { display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid #e5e7eb; }
+        td::before { content: attr(data-label); color: #6b7280; font-weight: 700; }
+      }
+      @media (max-width: 420px) {
+        .grid { grid-template-columns: 1fr; }
+        .toolbar button { width: 100%; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside>
+        <strong>OpsPilot</strong>
+        <a class="active" href="#">At-risk accounts</a>
+        <a href="#">Pipeline</a>
+        <a href="#">Alerts</a>
+        <a href="#">Settings</a>
+      </aside>
+      <main>
+        <h1>Prioritize at-risk accounts</h1>
+        <p>Review accounts with stalled trials or invoice risk, then create the next outreach plan for the owner.</p>
+        <div class="toolbar">
+          <button>Review risk queue</button>
+          <span class="status">4 accounts need action today</span>
+        </div>
+        <div class="grid"><div class="card">MRR at risk<strong>$42k</strong></div><div class="card">Trial accounts<strong>281</strong></div><div class="card">Churn signal<strong>7.4%</strong></div><div class="card">Open alerts<strong>19</strong></div></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>Account</th><th>Owner</th><th>Stage</th><th>Risk</th><th>Usage</th><th>Invoice</th><th>Next action</th></tr></thead><tbody><tr><td data-label="Account">Northstar AI</td><td data-label="Owner">Mina</td><td data-label="Stage">Trial</td><td data-label="Risk">High</td><td data-label="Usage">Low</td><td data-label="Invoice">Pending</td><td data-label="Next action">Review notes and email buyer</td></tr><tr><td data-label="Account">Vertex Labs</td><td data-label="Owner">Jun</td><td data-label="Stage">Expansion</td><td data-label="Risk">Medium</td><td data-label="Usage">High</td><td data-label="Invoice">Paid</td><td data-label="Next action">Schedule security call</td></tr></tbody></table>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

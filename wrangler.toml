@@ -1,0 +1,12 @@
+name = "useuxray"
+main = "apps/cloudflare/src/index.ts"
+compatibility_date = "2026-07-05"
+
+routes = [
+  { pattern = "useuxray.com", custom_domain = true },
+  { pattern = "www.useuxray.com", custom_domain = true }
+]
+
+[assets]
+directory = "./apps/site"
+binding = "ASSETS"

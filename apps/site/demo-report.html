@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UXRay Demo Gallery — real before/after proof</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate icon" href="/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
+    <header class="nav">
+      <a class="brand" href="/" aria-label="UXRay home"><span class="mark"></span><span>UXRay</span></a>
+      <nav>
+        <a href="/demo-report.html">Proof</a>
+        <a href="/#pricing">Pricing</a>
+        <a href="/docs.html">Docs</a>
+        <a href="https://github.com/codepawl/ui-reviewer" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="/login.html">Log in</a>
+        <a class="nav-cta" href="/checkout.html?plan=pro">Pay</a>
+      </nav>
+    </header>
+
+    <main class="gallery-main shell">
+      <section class="gallery-hero reveal">
+        <div>
+          <h1>Proof gallery.</h1>
+          <p class="lede">Three validated screenshot pairs, ten UI failure modes, and more cases you can run after installing UXRay. Click any screenshot to zoom.</p>
+        </div>
+        <div class="proof-strip">
+          <span><strong>39 → 100</strong> average score</span>
+          <span><strong>11 → 0</strong> issues</span>
+          <span><strong>10+</strong> scenarios</span>
+        </div>
+      </section>
+
+      <section class="demo-case reveal" id="landing-chaos">
+        <div class="case-copy">
+          <span class="case-index">01 · validated</span>
+          <h2>Landing chaos</h2>
+          <p>Vague promise, competing CTAs, and mobile overflow. UXRay gave Codex a concrete repair contract: one job-to-be-done, one primary action, mobile-safe layout.</p>
+          <ul><li>Score: <strong>46 → 100</strong></li><li>Fixed: intent fit, task flow, responsive layout</li></ul>
+        </div>
+        <div class="evidence-grid">
+          <figure class="evidence-card before-card"><div class="media-frame"><img src="/assets/evidence/landing-before.webp" alt="Landing chaos before UXRay" /></div><figcaption><strong>Before</strong><span>Vague H1, CTA conflict, mobile overflow.</span></figcaption></figure>
+          <figure class="evidence-card after-card"><div class="media-frame"><img src="/assets/evidence/landing-after.webp" alt="Landing chaos after UXRay repair" /></div><figcaption><strong>After</strong><span>Clear H1, one CTA, mobile-safe structure.</span></figcaption></figure>
+        </div>
+      </section>
+
+      <section class="demo-case reveal" id="dashboard-density">
+        <div class="case-copy">
+          <span class="case-index">02 · validated</span>
+          <h2>Dashboard density</h2>
+          <p>The generated dashboard looked feature-rich but buried the operator in controls, nav items, and unclear priority. UXRay pushed the repair toward hierarchy and decision support.</p>
+          <ul><li>Score: <strong>36 → 100</strong></li><li>Fixed: information hierarchy, intent fit, responsive layout, task flow</li></ul>
+        </div>
+        <div class="evidence-grid">
+          <figure class="evidence-card before-card"><div class="media-frame"><img src="/assets/evidence/dashboard-before.webp" alt="Dashboard density before UXRay" /></div><figcaption><strong>Before</strong><span>Dense controls, noisy navigation, weak task priority.</span></figcaption></figure>
+          <figure class="evidence-card after-card"><div class="media-frame"><img src="/assets/evidence/dashboard-after.webp" alt="Dashboard density after UXRay repair" /></div><figcaption><strong>After</strong><span>Clear hierarchy, fewer competing controls, better scan path.</span></figcaption></figure>
+        </div>
+      </section>
+
+      <section class="demo-case reveal" id="onboarding-form">
+        <div class="case-copy">
+          <span class="case-index">03 · validated</span>
+          <h2>Onboarding form dump</h2>
+          <p>The model dumped too much into one form without progress, state clarity, or mobile-safe structure. UXRay pushed it into a calmer guided flow.</p>
+          <ul><li>Score: <strong>36 → 100</strong></li><li>Fixed: intent fit, responsive layout, state completeness, task flow</li></ul>
+        </div>
+        <div class="evidence-grid">
+          <figure class="evidence-card before-card"><div class="media-frame"><img src="/assets/evidence/onboarding-before.webp" alt="Onboarding form before UXRay" /></div><figcaption><strong>Before</strong><span>Form dump, unclear state, mobile risk.</span></figcaption></figure>
+          <figure class="evidence-card after-card"><div class="media-frame"><img src="/assets/evidence/onboarding-after.webp" alt="Onboarding form after UXRay repair" /></div><figcaption><strong>After</strong><span>Guided path, clearer state, responsive layout.</span></figcaption></figure>
+        </div>
+      </section>
+
+      <section class="scenario-section reveal">
+        <div class="scenario-head">
+          <h2>More cases UXRay is built to catch.</h2>
+          <p class="section-copy">These are install-to-run scenarios for the next gallery refresh. UXRay should flag the problem, guide the agent, then save the before/after proof.</p>
+        </div>
+        <div class="scenario-grid">
+          <article><span>04</span><h3>Pricing table overload</h3><p>Too many plan details, weak primary plan, unclear upgrade path.</p></article>
+          <article><span>05</span><h3>Settings maze</h3><p>Danger actions, account controls, billing, and preferences mixed together.</p></article>
+          <article><span>06</span><h3>Empty-state dead end</h3><p>Beautiful blank page with no next action, sample data, or recovery path.</p></article>
+          <article><span>07</span><h3>Mobile CTA collapse</h3><p>Desktop layout looks fine, but mobile pushes the primary action below the fold.</p></article>
+          <article><span>08</span><h3>Modal friction</h3><p>Overlong modal copy, unclear confirmation state, and hidden destructive context.</p></article>
+          <article><span>09</span><h3>Docs quickstart gap</h3><p>Install page assumes context, skips verification, and leaves agents guessing.</p></article>
+          <article><span>10</span><h3>AI app builder page</h3><p>Polished visuals, but no user intent, proof, or sensible product hierarchy.</p></article>
+        </div>
+        <div class="upsell-band">
+          <h2>And many more.</h2>
+          <p>Install UXRay to run the scenarios against your own UI and generate private proof reports.</p>
+          <a class="button primary" href="/signup.html">Get MCP + plugins</a>
+        </div>
+      </section>
+    </main>
+    <script src="/site.js" defer></script>
+  </body>
+</html>

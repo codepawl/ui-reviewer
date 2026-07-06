@@ -1,0 +1,35 @@
+{
+  "name": "ui-reviewer",
+  "version": "0.3.0",
+  "description": "MCP-first UI/UX review layer for AI-generated frontend experiments.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "mcp": "tsx apps/mcp-server/src/index.ts",
+    "api": "tsx apps/api/src/index.ts",
+    "smoke:mcp": "node scripts/smoke-mcp-client.mjs",
+    "smoke:render": "node scripts/smoke-render-client.mjs",
+    "smoke:vision": "node scripts/smoke-vision-client.mjs",
+    "smoke:api": "node scripts/smoke-api.mjs",
+    "eval:fixtures": "node scripts/eval-fixtures.mjs",
+    "eval:reset": "node scripts/reset-eval-fixtures.mjs",
+    "demo:report": "node scripts/generate-demo-report.mjs",
+    "demo:pipeline": "node scripts/run-demo-pipeline.mjs",
+    "cloudflare:dev": "wrangler dev",
+    "cloudflare:deploy": "wrangler deploy",
+    "review:url": "node scripts/review-url.mjs",
+    "review:diff": "node scripts/review-diff.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "playwright-core": "^1.61.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "tsx": "^4.23.0",
+    "typescript": "^6.0.3"
+  }
+}

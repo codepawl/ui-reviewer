@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Landing CTA Chaos</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #f8fafc; color: #0f172a; }
+      main { width: min(1120px, 100%); margin: 0 auto; padding: 32px; }
+      .hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); gap: 18px; align-items: stretch; }
+      .card { background: white; border-radius: 22px; padding: 26px; box-shadow: 0 18px 42px rgba(15,23,42,.08); min-width: 0; }
+      h1 { font-size: clamp(32px, 5vw, 52px); line-height: 1.02; margin: 0 0 14px; max-width: 680px; }
+      p { color: #475569; line-height: 1.55; }
+      .cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+      a.button, button { border: 0; border-radius: 999px; padding: 13px 16px; background: #111827; color: white; text-decoration: none; font-weight: 800; }
+      .proof { display: grid; gap: 12px; margin: 18px 0 0; padding: 0; list-style: none; color: #334155; }
+      .proof li { padding-left: 18px; position: relative; }
+      .proof li::before { content: ""; width: 7px; height: 7px; border-radius: 999px; background: #0f172a; position: absolute; left: 0; top: .68em; }
+      .plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 20px; }
+      @media (max-width: 640px) {
+        main { padding: 18px; }
+        .hero, .plans { grid-template-columns: 1fr; }
+        .card { padding: 22px; }
+        .cta-row .button { width: 100%; text-align: center; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div class="card">
+          <h1>Review AI-built UI before it ships</h1>
+          <p>Run a local MCP review on a URL or screenshot, get structured issues, and hand the repair list back to Codex.</p>
+          <div class="cta-row">
+            <a class="button" href="#">Run a local review</a>
+          </div>
+        </div>
+        <div class="card">
+          <h2>One repair loop</h2>
+          <p>Capture the page, score the UI, then apply the highest-impact fixes first.</p>
+          <ul class="proof">
+            <li>Desktop and mobile screenshots</li>
+            <li>Structured issue categories</li>
+            <li>Concrete repair prompt</li>
+          </ul>
+        </div>
+      </section>
+      <section class="plans">
+        <div class="card"><h2>Render</h2><p>Open the target in controlled desktop and mobile viewports.</p></div>
+        <div class="card"><h2>Review</h2><p>Flag hierarchy, task-flow, accessibility, and responsive defects.</p></div>
+        <div class="card"><h2>Repair</h2><p>Use the report as focused instructions for the next code edit.</p></div>
+      </section>
+    </main>
+  </body>
+</html>

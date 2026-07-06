@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Onboarding Form Dump</title>
+    <style>
+      body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #fff7ed; color: #111827; }
+      main { padding: 32px; }
+      .panel { background: white; border-radius: 22px; padding: 28px; box-shadow: 0 18px 40px rgba(124,45,18,.12); max-width: 980px; }
+      h1 { margin: 0 0 12px; font-size: 30px; }
+      p { color: #57534e; line-height: 1.55; }
+      form { display: grid; grid-template-columns: repeat(2, 280px); gap: 12px; margin-top: 18px; }
+      input, select, textarea { padding: 13px; border: 1px solid #fed7aa; border-radius: 12px; font: inherit; }
+      textarea { grid-column: span 2; min-height: 120px; }
+      .actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+      button { border: 0; border-radius: 999px; padding: 12px 16px; font-weight: 800; color: white; background: #ea580c; }
+      button.alt { background: #e7e5e4; color: #111827; }
+      @media (max-width: 640px) {
+        main { padding: 18px; }
+        .panel { min-width: 640px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="panel">
+        <h1>Start</h1>
+        <p>Create an account, configure billing, connect your repo, invite teammates, pick the default model, explain your design system, choose notification rules, and submit company details all at once. Required fields are not explained and there are no visible progress, error, save, or recovery states.</p>
+        <form>
+          <input placeholder="Full name" />
+          <input placeholder="Work email" />
+          <input placeholder="Company" />
+          <input placeholder="Team size" />
+          <select><option>Choose use case</option></select>
+          <select><option>Choose model provider</option></select>
+          <input placeholder="GitHub repo URL" />
+          <input placeholder="Billing email" />
+          <textarea placeholder="Describe your design system"></textarea>
+        </form>
+        <div class="actions"><button>Create workspace</button><button class="alt">Skip</button><button class="alt">Save draft</button><button class="alt">Import from GitHub</button></div>
+      </section>
+    </main>
+  </body>
+</html>

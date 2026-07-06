@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Onboarding Form Dump</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #fff7ed; color: #111827; }
+      main { width: min(980px, 100%); padding: 32px; }
+      .panel { background: white; border-radius: 22px; padding: 28px; box-shadow: 0 18px 40px rgba(124,45,18,.12); }
+      h1 { margin: 0 0 12px; font-size: clamp(30px, 5vw, 42px); }
+      p { color: #57534e; line-height: 1.55; }
+      .progress { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 20px 0; padding: 0; list-style: none; }
+      .progress li { border: 1px solid #fed7aa; border-radius: 14px; padding: 10px 12px; color: #7c2d12; font-weight: 800; background: #fff7ed; }
+      form { display: grid; gap: 18px; margin-top: 18px; }
+      fieldset { border: 1px solid #fed7aa; border-radius: 18px; padding: 16px; margin: 0; }
+      legend { padding: 0 6px; font-weight: 900; color: #9a3412; }
+      .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      label { display: grid; gap: 6px; color: #44403c; font-weight: 700; }
+      label span { font-size: 13px; }
+      input, select, textarea { width: 100%; padding: 13px; border: 1px solid #fed7aa; border-radius: 12px; font: inherit; }
+      textarea { min-height: 120px; resize: vertical; }
+      .actions { display: flex; align-items: center; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
+      button { border: 0; border-radius: 999px; padding: 12px 16px; font-weight: 800; color: white; background: #ea580c; }
+      .state { color: #78716c; font-size: 14px; }
+      @media (max-width: 640px) {
+        main { padding: 18px; }
+        .panel { padding: 22px; }
+        .progress, .fields { grid-template-columns: 1fr; }
+        button { width: 100%; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="panel">
+        <h1>Create your UI review workspace</h1>
+        <p>Complete the required basics first. Repo, billing, and teammate setup can be added after the workspace is created.</p>
+        <ol class="progress" aria-label="Onboarding progress">
+          <li>1. Profile</li>
+          <li>2. Workspace</li>
+          <li>3. Review</li>
+        </ol>
+        <form>
+          <fieldset>
+            <legend>Your profile</legend>
+            <div class="fields">
+              <label><span>Full name *</span><input required placeholder="Mina Lee" /></label>
+              <label><span>Work email *</span><input required type="email" placeholder="mina@example.com" /></label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Workspace details</legend>
+            <div class="fields">
+              <label><span>Company *</span><input required placeholder="Northstar AI" /></label>
+              <label><span>Team size</span><input inputmode="numeric" placeholder="12" /></label>
+              <label><span>Primary use case *</span><select required><option>Review AI-generated pages</option></select></label>
+              <label><span>Model provider</span><select><option>OpenAI</option></select></label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Design context</legend>
+            <label><span>Describe your design system</span><textarea placeholder="Core components, brand constraints, and accessibility requirements"></textarea></label>
+          </fieldset>
+          <div class="actions"><button type="submit">Create workspace</button><span class="state">Draft saves automatically. Required fields are marked with *.</span></div>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

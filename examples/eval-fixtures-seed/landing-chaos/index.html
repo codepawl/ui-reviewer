@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Landing CTA Chaos</title>
+    <style>
+      body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #f8fafc; color: #0f172a; }
+      main { padding: 32px; }
+      .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+      .card { background: white; border-radius: 22px; padding: 26px; box-shadow: 0 18px 42px rgba(15,23,42,.08); }
+      h1 { font-size: 38px; margin: 0 0 14px; }
+      p { color: #475569; line-height: 1.55; }
+      .cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+      a.button, button { border: 0; border-radius: 999px; padding: 13px 16px; background: #111827; color: white; text-decoration: none; font-weight: 800; }
+      button.alt, a.alt { background: #e5e7eb; color: #111827; }
+      .plans { display: grid; grid-template-columns: repeat(3, 320px); gap: 14px; margin-top: 20px; }
+      @media (max-width: 640px) {
+        main { padding: 18px; }
+        .hero { grid-template-columns: 1fr 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div class="card">
+          <h1>Make UI nice</h1>
+          <p>This tool checks designs, screenshots, prototypes, pages, code, accessibility, mobile, desktop, colors, copy, hierarchy, landing pages, dashboards, onboarding, analytics, and probably more for teams, founders, engineers, designers, managers, and everyone building software with AI.</p>
+          <div class="cta-row">
+            <a class="button" href="#">Start free</a>
+            <a class="button alt" href="#">Book demo</a>
+            <button>Upload screenshot</button>
+            <button class="alt">Install MCP</button>
+            <button class="alt">Read docs</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Everything included</h2>
+          <p>No single workflow is explained. The page asks users to do five different things before they understand the product.</p>
+        </div>
+      </section>
+      <section class="plans">
+        <div class="card"><h2>Free</h2><p>Try some things. Limits unclear.</p></div>
+        <div class="card"><h2>Pro</h2><p>More things. Pricing missing.</p></div>
+        <div class="card"><h2>Enterprise</h2><p>Maybe secure. Contact someone.</p></div>
+      </section>
+    </main>
+  </body>
+</html>
