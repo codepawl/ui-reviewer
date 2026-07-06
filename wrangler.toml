@@ -13,3 +13,12 @@ binding = "ASSETS"
 
 [vars]
 RENDER_API_BASE = "https://uxray-renderer.fly.dev"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "uxray-reports"
+database_id = "2badb4fb-943f-4b8d-b835-85c284b51702"
+
+[[r2_buckets]]
+binding = "REPORTS"
+bucket_name = "uxray-reports"

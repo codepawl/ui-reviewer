@@ -143,7 +143,7 @@
     dialogContent.innerHTML = `
       <p class="section-kicker">Save report</p>
       <h2 id="uxray-dialog-title">Want to bookmark this UXRay page?</h2>
-      <p>Create an account to save proof reports, MCP configs, plugin packs, and bookmarked UI review examples.</p>
+      <p>Saved report links are durable now. Create an account to attach reports, MCP configs, plugin packs, and hosted credits to your workspace once sessions are enabled.</p>
       <div class="dialog-actions">
         <a class="button primary" href="/signup.html?intent=bookmark&next=${next}">Create account</a>
         <a class="button secondary" href="/login.html?intent=bookmark&next=${next}">Log in</a>

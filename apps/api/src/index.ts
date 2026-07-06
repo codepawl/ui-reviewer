@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { readFile } from "node:fs/promises";
 import { isIP } from "node:net";
 import { z } from "zod";
 import { compareReviewReports, reviewUiUrl, type ReviewInput, type ReviewReport } from "../../../packages/reviewer-core/src/index.js";
@@ -64,7 +65,8 @@ const reviewUrlSchema = z.object({
   strictness: z.enum(["low", "medium", "high"]).optional(),
   skip_render: z.boolean().optional(),
   use_vision: z.boolean().optional(),
-  vision_model: z.string().optional()
+  vision_model: z.string().optional(),
+  inline_screenshots: z.boolean().optional()
 });
 
 const reviewDiffSchema = z.object({
@@ -132,6 +134,21 @@ async function handleReviewUrl(body: unknown): Promise<unknown> {
   }
 
   const report = reviewUiUrl(reviewInput, rendered, vision);
+  if (args.inline_screenshots && report.rendered_context?.screenshots) {
+    await Promise.all(report.rendered_context.screenshots.map(async (screenshot) => {
+      try {
+        const bytes = await readFile(screenshot.path);
+        Object.assign(screenshot, {
+          content_type: "image/png",
+          data_base64: bytes.toString("base64")
+        });
+      } catch (error) {
+        Object.assign(screenshot, {
+          inline_error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }));
+  }
   return {
     ...report,
     ...(renderError ? { render_error: renderError } : {}),

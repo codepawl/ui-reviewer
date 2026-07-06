@@ -21,7 +21,10 @@ The first spike validates the Codex integration path:
 - `GET /v1/update` — returns latest UXRay version, release notes, and local check/upgrade commands.
 - `GET /v1/demo/report` — returns the static demo scorecard used by the landing page.
 - `GET|POST /v1/billing/checkout` — creates a Creem checkout session for `plan=pro|team|credits`, with direct product-link fallback.
-- `POST /v1/reviews/url` — API equivalent of `review_ui_url`.
+- `POST /v1/reviews/url` — API equivalent of `review_ui_url`; hosted mode stores report JSON/screenshots and returns `report_id`, `report_url`, and `share_url`.
+- `GET /v1/reports/:id` — returns a saved hosted review report from R2.
+- `GET /r/:id` — public share page for a saved hosted review report.
+- `GET /v1/reports/:id/screenshots/:file` — serves persisted screenshots from R2.
 - `POST /v1/reviews/diff` — API equivalent of `review_ui_diff`.
 
 ## Hosted Cloudflare demo
@@ -38,10 +41,11 @@ https://useuxray.com/v1/install
 https://useuxray.com/v1/update
 https://useuxray.com/v1/billing/checkout
 https://useuxray.com/v1/demo/report
+https://useuxray.com/r/:report_id
 https://useuxray.com/plugins/uxray-agent-skill.md
 ```
 
-The Cloudflare site hosts the landing page, install docs, before/after demo visuals, pricing/account shell, UXRay agent skill, and public API surface. Full URL rendering runs through local MCP/Playwright or a browser-capable Node render worker. In production, Cloudflare remains the control plane and proxies `/v1/reviews/url` to the Fly.io render worker when `RENDER_API_BASE` is configured, because standard Workers should not launch Chrome.
+The Cloudflare site hosts the landing page, install docs, before/after demo visuals, pricing/account shell, UXRay agent skill, and public API surface. Full URL rendering runs through local MCP/Playwright or a browser-capable Node render worker. In production, Cloudflare remains the control plane and proxies `/v1/reviews/url` to the Fly.io render worker when `RENDER_API_BASE` is configured, because standard Workers should not launch Chrome. Saved hosted reports use Cloudflare D1 (`uxray-reports`) for metadata and R2 (`uxray-reports`) for report JSON plus screenshot PNGs.
 
 The current review contract includes `top_issues`, viewport `layout_metrics`, and a `repair_plan` with region, selector hints, change intent, constraints, acceptance checks, and regression risks. This makes the output more useful as an agent repair contract than generic design advice.
 

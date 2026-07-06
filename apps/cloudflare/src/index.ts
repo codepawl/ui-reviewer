@@ -1,7 +1,48 @@
 import { compareReviewReports } from "../../../packages/reviewer-core/src/index.js";
 
+type D1StatementLike = {
+  bind: (...values: unknown[]) => {
+    run: () => Promise<unknown>;
+    first: <T = unknown>() => Promise<T | null>;
+    all: <T = unknown>() => Promise<{ results?: T[] }>;
+  };
+};
+
+type D1DatabaseLike = {
+  prepare: (query: string) => D1StatementLike;
+};
+
+type R2ObjectLike = {
+  body: ReadableStream;
+  httpMetadata?: { contentType?: string };
+  writeHttpMetadata?: (headers: Headers) => void;
+};
+
+type R2BucketLike = {
+  put: (key: string, value: ArrayBuffer | string | ReadableStream, options?: { httpMetadata?: { contentType?: string }; customMetadata?: Record<string, string> }) => Promise<unknown>;
+  get: (key: string) => Promise<R2ObjectLike | null>;
+};
+
+type HostedReport = Record<string, unknown> & {
+  report_id?: string;
+  report_url?: string;
+  share_url?: string;
+  saved?: boolean;
+  score?: number;
+  verdict?: string;
+  reviewed_url?: string;
+  rendered_context?: {
+    title?: string;
+    final_url?: string;
+    captured_at?: string;
+    screenshots?: Array<Record<string, unknown> & { name?: string; path?: string; data_base64?: string; content_type?: string }>;
+  };
+};
+
 type Env = {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
+  DB?: D1DatabaseLike;
+  REPORTS?: R2BucketLike;
   CREEM_API_KEY?: string;
   CREEM_API_BASE?: string;
   RENDER_API_BASE?: string;
@@ -207,6 +248,154 @@ function redirect(location: string, status = 303): Response {
   });
 }
 
+function html(markup: string, status = 200): Response {
+  return new Response(markup, {
+    status,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "public, max-age=60"
+    }
+  });
+}
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;");
+}
+
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes.buffer;
+}
+
+function safeObjectPart(value: unknown, fallback: string): string {
+  const clean = String(value || fallback).toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-|-$/g, "");
+  return clean || fallback;
+}
+
+async function loadReport(env: Env, id: string): Promise<HostedReport | null> {
+  if (!env.REPORTS || !/^[a-z0-9-]{8,64}$/i.test(id)) return null;
+  const object = await env.REPORTS.get(`reports/${id}/report.json`);
+  if (!object) return null;
+  return await new Response(object.body).json() as HostedReport;
+}
+
+async function persistHostedReport(payload: HostedReport, env: Env, origin: string): Promise<HostedReport> {
+  if (!env.REPORTS || !payload.rendered_context) return payload;
+
+  const id = crypto.randomUUID().replace(/-/g, "").slice(0, 20);
+  const screenshots = payload.rendered_context.screenshots || [];
+  let screenshotCount = 0;
+
+  for (let index = 0; index < screenshots.length; index += 1) {
+    const screenshot = screenshots[index];
+    const dataBase64 = screenshot.data_base64;
+    delete screenshot.data_base64;
+
+    if (!dataBase64) continue;
+    const name = safeObjectPart(screenshot.name, `viewport-${index + 1}`);
+    const extension = screenshot.content_type === "image/jpeg" ? "jpg" : "png";
+    const filename = `${name}.${extension}`;
+    const key = `reports/${id}/screenshots/${filename}`;
+    await env.REPORTS.put(key, base64ToArrayBuffer(dataBase64), {
+      httpMetadata: { contentType: screenshot.content_type || "image/png" },
+      customMetadata: { report_id: id, viewport: name }
+    });
+    screenshot.path = `/v1/reports/${id}/screenshots/${filename}`;
+    screenshot.screenshot_url = `${origin}/v1/reports/${id}/screenshots/${filename}`;
+    delete screenshot.content_type;
+    screenshotCount += 1;
+  }
+
+  const stored: HostedReport = {
+    ...payload,
+    report_id: id,
+    report_url: `/r/${id}`,
+    share_url: `${origin}/r/${id}`,
+    saved: true
+  };
+
+  const createdAt = stored.rendered_context?.captured_at || new Date().toISOString();
+  const reportKey = `reports/${id}/report.json`;
+  await env.REPORTS.put(reportKey, JSON.stringify(stored, null, 2), {
+    httpMetadata: { contentType: "application/json; charset=utf-8" },
+    customMetadata: { report_id: id, reviewed_url: String(stored.reviewed_url || "") }
+  });
+
+  if (env.DB) {
+    await env.DB.prepare(`INSERT OR REPLACE INTO reports (id, reviewed_url, final_url, title, score, verdict, screenshot_count, created_at, report_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(
+        id,
+        String(stored.reviewed_url || ""),
+        String(stored.rendered_context?.final_url || ""),
+        String(stored.rendered_context?.title || ""),
+        Number.isFinite(stored.score) ? stored.score : null,
+        String(stored.verdict || ""),
+        screenshotCount,
+        createdAt,
+        reportKey
+      )
+      .run();
+  }
+
+  return stored;
+}
+
+async function reportScreenshotResponse(env: Env, id: string, filename: string): Promise<Response> {
+  if (!env.REPORTS || !/^[a-z0-9-]{8,64}$/i.test(id) || !/^[a-z0-9._-]+$/i.test(filename)) {
+    return json({ error: "not_found" }, 404);
+  }
+  const object = await env.REPORTS.get(`reports/${id}/screenshots/${filename}`);
+  if (!object) return json({ error: "not_found" }, 404);
+  const headers = new Headers({ "cache-control": "public, max-age=31536000, immutable" });
+  if (object.writeHttpMetadata) object.writeHttpMetadata(headers);
+  if (!headers.has("content-type")) headers.set("content-type", object.httpMetadata?.contentType || "image/png");
+  return new Response(object.body, { headers });
+}
+
+function renderReportHtml(report: HostedReport): string {
+  const screenshots = report.rendered_context?.screenshots || [];
+  const issueItems = Array.isArray(report.top_issues)
+    ? (report.top_issues as Array<Record<string, unknown>>).slice(0, 6).map((issue) => `<li><strong>${escapeHtml(issue.severity)} ${escapeHtml(issue.category)}</strong><span>${escapeHtml(issue.evidence)}</span></li>`).join("")
+    : "";
+  const images = screenshots.map((screenshot) => `<figure><img class="zoomable" src="${escapeHtml(screenshot.screenshot_url || screenshot.path)}" alt="${escapeHtml(screenshot.name || "UXRay screenshot")}" loading="lazy" /><figcaption>${escapeHtml(screenshot.name || "viewport")}</figcaption></figure>`).join("");
+  const title = report.rendered_context?.title || "Saved UXRay report";
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(title)} — UXRay report</title>
+  <meta name="description" content="Saved UXRay hosted UI review report." />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="container docs-shell report-shell">
+    <a class="eyebrow-link" href="/">← UXRay</a>
+    <p class="section-kicker">Saved hosted report</p>
+    <h1>${escapeHtml(title)}</h1>
+    <p class="lede">${escapeHtml(report.reviewed_url)}</p>
+    <div class="stats-grid">
+      <article><span>Score</span><strong>${escapeHtml(report.score)}</strong></article>
+      <article><span>Verdict</span><strong>${escapeHtml(report.verdict)}</strong></article>
+      <article><span>Screenshots</span><strong>${screenshots.length}</strong></article>
+    </div>
+    <section class="report-gallery">${images}</section>
+    <section class="docs-card"><h2>Top issues</h2><ul class="report-issues">${issueItems || "<li>No issues saved.</li>"}</ul></section>
+    <section class="docs-card"><h2>API</h2><pre><code>curl https://useuxray.com/v1/reports/${escapeHtml(report.report_id)}</code></pre></section>
+  </main>
+  <script src="/site.js"></script>
+</body>
+</html>`;
+}
+
 async function readJson(request: Request): Promise<unknown> {
   try {
     return await request.json();
@@ -215,29 +404,33 @@ async function readJson(request: Request): Promise<unknown> {
   }
 }
 
-async function proxyRenderRequest(request: Request, env: Env): Promise<Response | null> {
+async function proxyRenderRequest(request: Request, env: Env, origin: string): Promise<Response | null> {
   if (!env.RENDER_API_BASE) return null;
 
   const upstreamUrl = new URL("/v1/reviews/url", env.RENDER_API_BASE.replace(/\/$/, ""));
   const headers = new Headers({ "content-type": "application/json" });
   if (env.RENDER_API_TOKEN) headers.set("x-uxray-render-token", env.RENDER_API_TOKEN);
 
+  const body = await readJson(request) as Record<string, unknown>;
   const upstream = await fetch(upstreamUrl.toString(), {
     method: "POST",
     headers,
-    body: await request.text()
+    body: JSON.stringify({ ...body, inline_screenshots: true })
   });
 
-  return new Response(upstream.body, {
-    status: upstream.status,
-    headers: {
-      "content-type": upstream.headers.get("content-type") || "application/json; charset=utf-8",
-      "cache-control": "no-store",
-      "access-control-allow-origin": "*",
-      "access-control-allow-methods": "GET,POST,OPTIONS",
-      "access-control-allow-headers": "content-type"
-    }
-  });
+  let payload: unknown;
+  try {
+    payload = await upstream.json();
+  } catch {
+    return json({ error: "render_worker_error", message: "Render worker returned non-JSON response." }, upstream.status || 502);
+  }
+
+  if (!upstream.ok) {
+    return json(payload, upstream.status);
+  }
+
+  const persisted = await persistHostedReport(payload as HostedReport, env, origin);
+  return json(persisted, upstream.status);
 }
 
 export default {
@@ -250,6 +443,23 @@ export default {
 
     if (url.pathname === "/health") {
       return json({ ok: true, service: "uxray-cloudflare", stage: "deployed-demo", hosted_rendering: Boolean(env.RENDER_API_BASE) });
+    }
+
+    const reportScreenshotMatch = url.pathname.match(/^\/v1\/reports\/([a-z0-9-]{8,64})\/screenshots\/([a-z0-9._-]+)$/i);
+    if (reportScreenshotMatch && (request.method === "GET" || request.method === "HEAD")) {
+      return reportScreenshotResponse(env, reportScreenshotMatch[1], reportScreenshotMatch[2]);
+    }
+
+    const reportApiMatch = url.pathname.match(/^\/v1\/reports\/([a-z0-9-]{8,64})$/i);
+    if (reportApiMatch && request.method === "GET") {
+      const report = await loadReport(env, reportApiMatch[1]);
+      return report ? json(report) : json({ error: "not_found", message: "Report not found." }, 404);
+    }
+
+    const reportPageMatch = url.pathname.match(/^\/r\/([a-z0-9-]{8,64})$/i);
+    if (reportPageMatch && request.method === "GET") {
+      const report = await loadReport(env, reportPageMatch[1]);
+      return report ? html(renderReportHtml(report)) : html("<!doctype html><title>Report not found — UXRay</title><main class=\"container docs-shell\"><h1>Report not found</h1><p>This UXRay report does not exist or was removed.</p><a href=\"/\">Back to UXRay</a></main>", 404);
     }
 
     if (url.pathname === "/v1/update" && request.method === "GET") {
@@ -351,7 +561,7 @@ export default {
     }
 
     if (url.pathname === "/v1/reviews/url" && request.method === "POST") {
-      const proxied = await proxyRenderRequest(request, env);
+      const proxied = await proxyRenderRequest(request, env, url.origin);
       if (proxied) return proxied;
 
       return json(

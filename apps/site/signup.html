@@ -18,14 +18,14 @@
       <section class="auth-card reveal">
         <div>
           <h1>Get MCP access.</h1>
-          <p class="lede">Create your UXRay account, choose a plan, and proceed toward hosted review credits, MCP config, UXRay skills, and plugin packs for Codex and Claude Code.</p>
+          <p class="lede">Create your UXRay account, choose a plan, and keep saved hosted reports tied to your workflow once sessions are enabled.</p>
         </div>
         <form class="auth-form" action="/v1/billing/checkout" method="post">
           <label>Email<input type="email" name="email" placeholder="you@company.com" required /></label>
           <label>Use case<select name="use_case"><option>AI-generated landing pages</option><option>Agent-built dashboards</option><option>Frontend QA in CI</option><option>Team UI review workflow</option></select></label>
           <label>Plan<select name="plan"><option value="pro">Pro hosted reviews</option><option value="team">Team / CI</option><option value="credits">Review credit pack</option></select></label>
           <button class="button primary" type="submit">Proceed to payment</button>
-          <p class="fine-print">This redirects to Creem checkout. Hosted rendering credits are delivered after the backend account flow is connected.</p>
+          <p class="fine-print">This redirects to Creem checkout. Durable report links are live now; credit delivery and account history are the next backend slice.</p>
         </form>
       </section>
     </main>
