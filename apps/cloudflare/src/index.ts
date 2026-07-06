@@ -23,6 +23,18 @@ type R2BucketLike = {
   get: (key: string) => Promise<R2ObjectLike | null>;
 };
 
+type EmailBindingLike = {
+  send: (message: {
+    to: string | { email: string; name?: string };
+    from: string | { email: string; name?: string };
+    subject: string;
+    html?: string;
+    text?: string;
+    replyTo?: string | { email: string; name?: string };
+    headers?: Record<string, string>;
+  }) => Promise<{ messageId?: string } | unknown>;
+};
+
 type HostedReport = Record<string, unknown> & {
   report_id?: string;
   report_url?: string;
@@ -86,9 +98,12 @@ type Env = {
   ASSETS: { fetch: (request: Request) => Promise<Response> };
   DB?: D1DatabaseLike;
   REPORTS?: R2BucketLike;
+  EMAIL?: EmailBindingLike;
   CREEM_API_KEY?: string;
   CREEM_API_BASE?: string;
   CREEM_WEBHOOK_SECRET?: string;
+  MAGIC_LINK_FROM?: string;
+  SUPPORT_EMAIL?: string;
   RENDER_API_BASE?: string;
   RENDER_API_TOKEN?: string;
 };
@@ -357,6 +372,62 @@ function redirectWithCookie(location: string, cookie: string, status = 303): Res
   return response;
 }
 
+function emailText(value: unknown): string {
+  return String(value ?? "").replace(/[<>]/g, "");
+}
+
+function htmlEscape(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+async function markMagicLinkDelivery(env: Env, tokenHash: string, status: string, error = ""): Promise<void> {
+  if (!env.DB) return;
+  await env.DB.prepare(`UPDATE magic_links SET delivery_status = ?, delivered_at = CASE WHEN ? = 'sent' THEN ? ELSE delivered_at END, delivery_error = ? WHERE token_hash = ?`)
+    .bind(status, status, nowIso(), error.slice(0, 500), tokenHash)
+    .run();
+}
+
+async function sendMagicLinkEmail(env: Env, email: string, verifyUrl: string, tokenHash: string): Promise<{ delivery: string; message_id?: string; error?: string }> {
+  if (!env.EMAIL) {
+    await markMagicLinkDelivery(env, tokenHash, "email_not_configured");
+    return { delivery: "email_not_configured" };
+  }
+  const from = env.MAGIC_LINK_FROM || "no-reply@useuxray.com";
+  const supportEmail = env.SUPPORT_EMAIL || "hello@useuxray.com";
+  const text = [
+    "Sign in to UXRay",
+    "",
+    "Use this link within 15 minutes:",
+    verifyUrl,
+    "",
+    "If you did not request this, ignore this email.",
+    `Need help? ${supportEmail}`
+  ].join("\n");
+  const html = `<!doctype html><meta charset="utf-8"><body style="font-family:Inter,Arial,sans-serif;background:#070812;color:#f8fafc;padding:32px"><main style="max-width:560px;margin:auto;background:#101322;border:1px solid #293044;border-radius:18px;padding:28px"><p style="color:#94a3b8;text-transform:uppercase;letter-spacing:.12em;font-size:12px">UXRay login</p><h1 style="margin:0 0 12px;font-size:28px">Sign in to UXRay</h1><p style="color:#cbd5e1;line-height:1.6">Use this magic link within 15 minutes to verify your email and open your account dashboard.</p><p><a href="${htmlEscape(verifyUrl)}" style="display:inline-block;background:#7c3aed;color:white;text-decoration:none;padding:12px 18px;border-radius:999px;font-weight:700">Open UXRay</a></p><p style="color:#94a3b8;font-size:13px;line-height:1.5">If the button does not work, copy this link:<br><span style="word-break:break-all;color:#c4b5fd">${htmlEscape(verifyUrl)}</span></p><p style="color:#64748b;font-size:12px">If you did not request this, ignore this email. Need help? ${htmlEscape(supportEmail)}</p></main></body>`;
+  try {
+    const result = await env.EMAIL.send({
+      to: email,
+      from,
+      subject: "Sign in to UXRay",
+      html,
+      text,
+      replyTo: supportEmail,
+      headers: { "X-UXRay-Email-Type": "magic-link" }
+    }) as { messageId?: string } | undefined;
+    await markMagicLinkDelivery(env, tokenHash, "sent");
+    return { delivery: "email_sent", message_id: result?.messageId };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await markMagicLinkDelivery(env, tokenHash, "email_send_failed", message);
+    return { delivery: "email_send_failed", error: message };
+  }
+}
+
 async function readRequestFields(request: Request): Promise<Record<string, string>> {
   const contentType = request.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
@@ -405,14 +476,14 @@ async function createSession(env: Env, email: string): Promise<string | null> {
   return token;
 }
 
-async function createMagicLink(env: Env, email: string, purpose = "login"): Promise<string | null> {
+async function createMagicLink(env: Env, email: string, purpose = "login"): Promise<{ token: string; token_hash: string } | null> {
   if (!env.DB) return null;
   const token = newToken();
   const tokenHash = await sha256Hex(token);
-  await env.DB.prepare(`INSERT INTO magic_links (token_hash, account_email, purpose, created_at, expires_at) VALUES (?, ?, ?, ?, ?)`)
+  await env.DB.prepare(`INSERT INTO magic_links (token_hash, account_email, purpose, created_at, expires_at, delivery_status) VALUES (?, ?, ?, ?, ?, 'created')`)
     .bind(tokenHash, email, purpose, nowIso(), new Date(Date.now() + 1000 * 60 * 15).toISOString())
     .run();
-  return token;
+  return { token, token_hash: tokenHash };
 }
 
 async function consumeMagicLink(env: Env, token: string): Promise<string | null> {
@@ -1004,19 +1075,30 @@ export default {
       if (!email) return json({ ok: false, error: "invalid_email", message: "Enter a valid email address." }, 400);
       await upsertAccount(env, email, "free");
       await ensureEntitlement(env, email, "free", "active", "uxray");
-      const token = await createMagicLink(env, email, fields.purpose || "login");
-      if (!token) return json({ ok: false, error: "auth_storage_unavailable" }, 503);
+      const magic = await createMagicLink(env, email, fields.purpose || "login");
+      if (!magic) return json({ ok: false, error: "auth_storage_unavailable" }, 503);
       const verifyUrl = new URL("/v1/auth/verify", url.origin);
-      verifyUrl.searchParams.set("token", token);
-      return json({
+      verifyUrl.searchParams.set("token", magic.token);
+      const isDebug = fields.debug === "1" || url.searchParams.get("debug") === "1" || email.endsWith(".test");
+      const delivery = isDebug
+        ? (await markMagicLinkDelivery(env, magic.token_hash, "debug_returned"), { delivery: "debug_returned" })
+        : await sendMagicLinkEmail(env, email, verifyUrl.toString(), magic.token_hash);
+      const response: Record<string, unknown> = {
         ok: true,
         email,
         status: "magic_link_created",
-        delivery: "email_not_configured",
-        message: "Email delivery is not wired yet; use verify_url for this foundation slice.",
-        verify_url: verifyUrl.toString(),
+        delivery: delivery.delivery,
+        message: delivery.delivery === "email_sent"
+          ? "Check your email for a UXRay sign-in link."
+          : delivery.delivery === "email_send_failed"
+            ? "Email sending failed; retry after email service configuration is fixed."
+            : "Email delivery is not configured for this environment; debug verification URL is returned.",
         expires_in_seconds: 900
-      });
+      };
+      if (delivery.message_id) response.message_id = delivery.message_id;
+      if (delivery.error) response.delivery_error = delivery.error;
+      if (isDebug || delivery.delivery !== "email_sent") response.verify_url = verifyUrl.toString();
+      return json(response, delivery.delivery === "email_send_failed" ? 502 : 200);
     }
 
     if (url.pathname === "/v1/auth/verify" && request.method === "GET") {

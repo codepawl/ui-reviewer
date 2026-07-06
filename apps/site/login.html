@@ -18,13 +18,13 @@
       <section class="auth-card reveal">
         <div>
           <h1>Log in.</h1>
-          <p class="lede">Log in with email to scope dashboard usage, saved reports, and credit telemetry to your workspace.</p>
+          <p class="lede">Log in with a magic link to scope dashboard usage, saved reports, and credit telemetry to your workspace.</p>
         </div>
-        <form class="auth-form" action="/v1/auth/login" method="post">
+        <form class="auth-form" action="/v1/auth/magic-link" method="post">
           <label>Email<input type="email" name="email" placeholder="you@company.com" required /></label>
           <input type="hidden" name="next" value="/account.html" />
-          <button class="button primary" type="submit">Continue</button>
-          <p class="fine-print">This creates an email-scoped session cookie. Email verification is the next hardening step.</p>
+          <button class="button primary" type="submit">Send magic link</button>
+          <p class="fine-print">UXRay emails a 15-minute sign-in link from Cloudflare Email Service when the sender binding is configured.</p>
         </form>
       </section>
     </main>

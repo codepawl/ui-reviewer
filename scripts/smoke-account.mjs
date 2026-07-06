@@ -72,10 +72,13 @@ const webhookResponse = await fetch(`${baseUrl}/v1/billing/creem/webhook`, {
     metadata: { plan: "pro", product: "uxray" }
   })
 });
-assert(webhookResponse.ok, `webhook returned ${webhookResponse.status}`);
 const webhook = await webhookResponse.json();
-assert(webhook.status === "recorded_unverified", "unsigned webhook should not activate entitlement");
-assert(webhook.account_email === webhookEmail, "webhook email mismatch");
+assert([200, 401].includes(webhookResponse.status), `webhook returned ${webhookResponse.status}`);
+assert(
+  webhook.status === "recorded_unverified" || webhook.status === "signature_missing",
+  "unsigned webhook should be recorded unverified or rejected when the secret is configured"
+);
+if (webhookResponse.status === 200) assert(webhook.account_email === webhookEmail, "webhook email mismatch");
 
 let hosted = null;
 if (runHostedRender) {

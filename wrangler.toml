@@ -13,6 +13,11 @@ binding = "ASSETS"
 
 [vars]
 RENDER_API_BASE = "https://uxray-renderer.fly.dev"
+MAGIC_LINK_FROM = "no-reply@useuxray.com"
+SUPPORT_EMAIL = "hello@useuxray.com"
+
+[[send_email]]
+name = "EMAIL"
 
 [[d1_databases]]
 binding = "DB"
