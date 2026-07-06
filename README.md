@@ -18,6 +18,7 @@ The first spike validates the Codex integration path:
 
 - `GET /health` — verifies the HTTP API is live.
 - `GET /v1/install` — returns Codex, Claude Code, and local API setup snippets for the hosted docs.
+- `GET /v1/update` — returns latest UXRay version, release notes, and local check/upgrade commands.
 - `GET /v1/demo/report` — returns the static demo scorecard used by the landing page.
 - `GET|POST /v1/billing/checkout` — creates a Creem checkout session for `plan=pro|team|credits`, with direct product-link fallback.
 - `POST /v1/reviews/url` — API equivalent of `review_ui_url`.
@@ -34,6 +35,7 @@ https://useuxray.com/signup.html
 https://useuxray.com/checkout.html
 https://useuxray.com/account.html
 https://useuxray.com/v1/install
+https://useuxray.com/v1/update
 https://useuxray.com/v1/billing/checkout
 https://useuxray.com/v1/demo/report
 https://useuxray.com/plugins/uxray-agent-skill.md
@@ -70,6 +72,8 @@ npm run demo:report
 npm run demo:pipeline
 npm run review:url
 npm run review:diff
+npm run check:update
+npm run upgrade
 npm run mcp
 ```
 

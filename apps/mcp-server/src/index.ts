@@ -7,9 +7,11 @@ import { compareReviewReports, reviewUiUrl, type ReviewReport } from "../../../p
 import { captureUiUrl } from "../../../packages/renderer/src/index.js";
 import { judgeRenderedUiWithVision } from "../../../packages/vision-adapter/src/index.js";
 
+const UXRAY_VERSION = "0.3.1";
+
 const server = new McpServer({
   name: "ui-reviewer",
-  version: "0.3.0"
+  version: UXRAY_VERSION
 });
 
 server.registerTool(
@@ -26,8 +28,10 @@ server.registerTool(
           {
             ok: true,
             service: "ui-reviewer",
-            stage: "spike-005-review-diff",
-            tools: ["health_check", "review_ui_url", "review_ui_diff"]
+            version: UXRAY_VERSION,
+            stage: "share-bookmark-update",
+            tools: ["health_check", "check_update", "review_ui_url", "review_ui_diff"],
+            update_command: "npm run check:update"
           },
           null,
           2
@@ -35,6 +39,52 @@ server.registerTool(
       }
     ]
   })
+);
+
+server.registerTool(
+  "check_update",
+  {
+    title: "Check for UXRay update",
+    description: "Check the hosted UXRay update endpoint and return local upgrade/cancel commands for the user.",
+    inputSchema: {
+      current_version: z.string().optional().describe("Current local UXRay version. Defaults to the MCP server package version."),
+      endpoint: z.string().url().optional().describe("Optional update endpoint override.")
+    }
+  },
+  async (args) => {
+    const currentVersion = args.current_version || UXRAY_VERSION;
+    const endpoint = args.endpoint || "https://useuxray.com/v1/update";
+    let payload: unknown;
+    try {
+      const response = await fetch(`${endpoint}?current=${encodeURIComponent(currentVersion)}&channel=stable`, { cache: "no-store" });
+      payload = response.ok
+        ? await response.json()
+        : { ok: false, error: "update_check_failed", status: response.status, status_text: response.statusText };
+    } catch (error) {
+      payload = { ok: false, error: "update_check_failed", message: error instanceof Error ? error.message : String(error) };
+    }
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              current_version: currentVersion,
+              ...((payload && typeof payload === "object") ? payload : { payload }),
+              local_options: {
+                check: "npm run check:update",
+                auto_upgrade: "npm run check:update -- --auto",
+                cancel: "Do nothing or dismiss the update prompt."
+              }
+            },
+            null,
+            2
+          )
+        }
+      ]
+    };
+  }
 );
 
 server.registerTool(

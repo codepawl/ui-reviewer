@@ -6,6 +6,17 @@ import { captureUiUrl } from "../../../packages/renderer/src/index.js";
 import { judgeRenderedUiWithVision } from "../../../packages/vision-adapter/src/index.js";
 
 const PORT = Number.parseInt(process.env.PORT ?? "4317", 10);
+const UXRAY_VERSION = "0.3.1";
+
+function compareVersions(a: string, b: string): number {
+  const left = a.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const right = b.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
+    const delta = (left[index] || 0) - (right[index] || 0);
+    if (delta !== 0) return delta;
+  }
+  return 0;
+}
 
 const reviewUrlSchema = z.object({
   url: z.string().url(),
@@ -102,27 +113,54 @@ async function handleReviewDiff(body: unknown): Promise<unknown> {
 
 const server = createServer(async (request, response) => {
   try {
+    const requestUrl = new URL(request.url ?? "/", `http://127.0.0.1:${PORT}`);
+
     if (request.method === "OPTIONS") {
       sendJson(response, 204, {});
       return;
     }
 
-    if (request.method === "GET" && request.url === "/health") {
+    if (request.method === "GET" && requestUrl.pathname === "/health") {
       sendJson(response, 200, {
         ok: true,
         service: "ui-reviewer-api",
-        stage: "spike-006-api-wrapper",
-        endpoints: ["GET /health", "POST /v1/reviews/url", "POST /v1/reviews/diff"]
+        version: UXRAY_VERSION,
+        stage: "share-bookmark-update",
+        endpoints: ["GET /health", "GET /v1/update", "POST /v1/reviews/url", "POST /v1/reviews/diff"]
       });
       return;
     }
 
-    if (request.method === "POST" && request.url === "/v1/reviews/url") {
+    if (request.method === "GET" && requestUrl.pathname === "/v1/update") {
+      const currentVersion = requestUrl.searchParams.get("current") || "0.0.0";
+      const updateAvailable = compareVersions(UXRAY_VERSION, currentVersion) > 0;
+      sendJson(response, 200, {
+        ok: true,
+        product: "UXRay",
+        channel: requestUrl.searchParams.get("channel") || "stable",
+        current_version: currentVersion,
+        latest_version: UXRAY_VERSION,
+        update_available: updateAvailable,
+        commands: {
+          check: "npm run check:update",
+          auto_upgrade: "npm run check:update -- --auto",
+          upgrade: "npm run upgrade",
+          cancel: "Dismiss the update prompt and keep the current local version."
+        },
+        release_notes: [
+          "Share and bookmark actions are now interactive.",
+          "Local installs can choose auto-upgrade or cancel from npm run check:update."
+        ]
+      });
+      return;
+    }
+
+    if (request.method === "POST" && requestUrl.pathname === "/v1/reviews/url") {
       sendJson(response, 200, await handleReviewUrl(await readJson(request)));
       return;
     }
 
-    if (request.method === "POST" && request.url === "/v1/reviews/diff") {
+    if (request.method === "POST" && requestUrl.pathname === "/v1/reviews/diff") {
       sendJson(response, 200, await handleReviewDiff(await readJson(request)));
       return;
     }

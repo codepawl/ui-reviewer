@@ -6,11 +6,23 @@ type Env = {
   CREEM_API_BASE?: string;
 };
 
+const UXRAY_VERSION = "0.3.1";
+
 const CREEM_PRODUCTS = {
   pro: "prod_1jC5aZ17L5Gcg2DLvPGRsm",
   team: "prod_7BsaI9cntwy4eGvyZ9jYPp",
   credits: "prod_4umYAfrnQ3BktOxLwgcMwX"
 } as const;
+
+function compareVersions(a: string, b: string): number {
+  const left = a.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const right = b.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
+    const delta = (left[index] || 0) - (right[index] || 0);
+    if (delta !== 0) return delta;
+  }
+  return 0;
+}
 
 function creemCheckoutUrl(plan: keyof typeof CREEM_PRODUCTS = "pro"): string {
   return `https://creem.io/payment/${CREEM_PRODUCTS[plan]}?theme=dark`;
@@ -129,6 +141,7 @@ const demoReport = {
 
 const installGuide = {
   product: "UXRay",
+  version: UXRAY_VERSION,
   docs: "/docs.html",
   recommended_local_demo: "npm run demo:pipeline",
   github: "https://github.com/codepawl/ui-reviewer",
@@ -159,6 +172,12 @@ const installGuide = {
     provider: "Creem",
     creem_products: CREEM_PRODUCTS,
     live_payments_note: "Creem checkout sessions are created through the Creem API when CREEM_API_KEY is configured; direct payment links remain as fallback."
+  },
+  updates: {
+    endpoint: "/v1/update",
+    check_command: "npm run check:update",
+    auto_upgrade_command: "npm run check:update -- --auto",
+    upgrade_command: "npm run upgrade"
   },
   hosted_note: "Cloudflare hosts the landing/docs/static demo API. URL rendering needs a browser-capable local or hosted runtime."
 };
@@ -204,6 +223,34 @@ export default {
 
     if (url.pathname === "/health") {
       return json({ ok: true, service: "uxray-cloudflare", stage: "deployed-demo" });
+    }
+
+    if (url.pathname === "/v1/update" && request.method === "GET") {
+      const currentVersion = url.searchParams.get("current") || "0.0.0";
+      const updateAvailable = compareVersions(UXRAY_VERSION, currentVersion) > 0;
+      return json({
+        ok: true,
+        product: "UXRay",
+        channel: url.searchParams.get("channel") || "stable",
+        current_version: currentVersion,
+        latest_version: UXRAY_VERSION,
+        update_available: updateAvailable,
+        severity: updateAvailable ? "recommended" : "none",
+        release_notes: [
+          "Share and bookmark actions are now interactive.",
+          "Bookmark prompts visitors to create an account or log in before saving reports.",
+          "Share opens platform-specific options plus copy-link fallback.",
+          "Local installs can run npm run check:update for upgrade/cancel flow."
+        ],
+        commands: {
+          check: "npm run check:update",
+          auto_upgrade: "npm run check:update -- --auto",
+          upgrade: "npm run upgrade",
+          cancel: "Dismiss the update prompt and keep the current local version."
+        },
+        docs: "/docs.html#updates",
+        github: "https://github.com/codepawl/ui-reviewer"
+      });
     }
 
     if (url.pathname === "/v1/demo/report" && request.method === "GET") {

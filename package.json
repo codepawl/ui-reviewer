@@ -1,6 +1,6 @@
 {
   "name": "ui-reviewer",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "MCP-first UI/UX review layer for AI-generated frontend experiments.",
   "type": "module",
   "private": true,
@@ -20,7 +20,9 @@
     "cloudflare:dev": "wrangler dev",
     "cloudflare:deploy": "wrangler deploy",
     "review:url": "node scripts/review-url.mjs",
-    "review:diff": "node scripts/review-diff.mjs"
+    "review:diff": "node scripts/review-diff.mjs",
+    "check:update": "node scripts/check-update.mjs",
+    "upgrade": "node scripts/upgrade.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

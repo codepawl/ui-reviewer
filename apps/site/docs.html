@@ -97,7 +97,18 @@ npm run demo:report</code></pre>
         <li>Fixtures improved: <strong>3/3</strong></li>
       </ul>
 
-      <h2 id="plugins">7. Plugins and hosted accounts</h2>
+      <h2 id="updates">7. Updates</h2>
+      <p>UXRay checks the hosted update endpoint and gives local users a command-based upgrade path. Interactive shells can choose auto-upgrade or cancel.</p>
+      <pre><code>npm run check:update
+# choose [u]pgrade or [c]ancel
+
+npm run check:update -- --auto
+# non-interactive auto-upgrade
+
+npm run upgrade
+# git pull --ff-only, npm install, npm run build</code></pre>
+
+      <h2 id="plugins">8. Plugins and hosted accounts</h2>
       <p>Account access should eventually unlock MCP config, plugin packs, saved reports, hosted review credits, and team rules. Creem checkout is wired for UXRay Pro; auth, entitlements, and hosted rendering still need the browser-capable backend.</p>
       <div class="docs-grid compact">
         <article class="docs-card"><h3>MCP config</h3><p>Copy-paste setup for Codex, Claude Code, and API clients.</p></article>
@@ -106,7 +117,7 @@ npm run demo:report</code></pre>
         <article class="docs-card"><h3>Saved reports</h3><p>Hosted history for screenshots, scores, issue deltas, and CI gates.</p></article>
       </div>
 
-      <h2 id="pricing">8. Pricing direction</h2>
+      <h2 id="pricing">9. Pricing direction</h2>
       <p>Local MCP stays free. Hosted rendering is priced by review calls and bundled for teams. Payment goes through Creem checkout sessions. The paid API should run on Browserbase, Cloud Run, Fly.io, Render, or a controlled Playwright worker pool.</p>
       <pre><code>POST /v1/billing/checkout
 # plan=pro     -> Creem UXRay Pro checkout
