@@ -186,9 +186,9 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && requestUrl.pathname === "/health") {
       sendJson(response, 200, {
         ok: true,
-        service: "ui-reviewer-api",
+        service: "uxray-api",
         version: UXRAY_VERSION,
-        stage: "share-bookmark-update",
+        stage: "uxray-brand-sync",
         endpoints: ["GET /health", "GET /v1/update", "POST /v1/reviews/url", "POST /v1/reviews/diff"]
       });
       return;
@@ -211,8 +211,8 @@ const server = createServer(async (request, response) => {
           cancel: "Dismiss the update prompt and keep the current local version."
         },
         release_notes: [
-          "Share and bookmark actions are now interactive.",
-          "Local installs can choose auto-upgrade or cancel from npm run check:update."
+          "UXRay branding now appears consistently across the public site, API, and MCP server.",
+          "Local MCP launch commands now use npm --silent so stdio JSON-RPC is not polluted by npm banners."
         ]
       });
       return;
@@ -243,5 +243,5 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.error(`ui-reviewer-api listening on http://${HOST}:${PORT}`);
+  console.error(`uxray-api listening on http://${HOST}:${PORT}`);
 });

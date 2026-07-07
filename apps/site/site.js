@@ -31,13 +31,6 @@
     return output;
   };
 
-  const icon = (name) => {
-    const icons = {
-      share: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line></svg>',
-      bookmark: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z"></path></svg>'
-    };
-    return icons[name] || "";
-  };
 
   const copyText = async (text) => {
     try {
@@ -138,79 +131,6 @@
     if (event.target === dialog || event.target.classList.contains('uxray-dialog-close')) closeDialog();
   });
 
-  const openBookmarkDialog = () => {
-    const next = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
-    dialogContent.innerHTML = `
-      <p class="section-kicker">Save report</p>
-      <h2 id="uxray-dialog-title">Want to bookmark this UXRay page?</h2>
-      <p>Saved report links are durable now. Create an account to attach reports, MCP configs, plugin packs, and hosted credits to your workspace once sessions are enabled.</p>
-      <div class="dialog-actions">
-        <a class="button primary" href="/signup.html?intent=bookmark&next=${next}">Create account</a>
-        <a class="button secondary" href="/login.html?intent=bookmark&next=${next}">Log in</a>
-        <button class="button ghost" type="button" data-close-dialog>Cancel</button>
-      </div>`;
-    dialog.classList.add('is-open');
-    dialog.setAttribute('aria-hidden', 'false');
-  };
-
-  const shareLinks = () => {
-    const url = encodeURIComponent(pageUrl());
-    const title = encodeURIComponent(`${pageTitle()} — UXRay`);
-    return [
-      ["X / Twitter", `https://twitter.com/intent/tweet?text=${title}&url=${url}`],
-      ["LinkedIn", `https://www.linkedin.com/sharing/share-offsite/?url=${url}`],
-      ["Reddit", `https://www.reddit.com/submit?url=${url}&title=${title}`],
-      ["Hacker News", `https://news.ycombinator.com/submitlink?u=${url}&t=${title}`],
-      ["Email", `mailto:?subject=${title}&body=${url}`]
-    ];
-  };
-
-  const openShareDialog = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: pageTitle(), text: "UXRay turns frontend review into an agent repair loop.", url: pageUrl() });
-        return;
-      } catch (error) {
-        if (error?.name === "AbortError") return;
-      }
-    }
-    dialogContent.innerHTML = `
-      <p class="section-kicker">Share UXRay</p>
-      <h2 id="uxray-dialog-title">Share this page.</h2>
-      <p>Send UXRay to another builder, save it in your team channel, or copy the link.</p>
-      <div class="share-grid">
-        ${shareLinks().map(([label, href]) => `<a href="${href}" target="_blank" rel="noreferrer">${label}</a>`).join('')}
-      </div>
-      <div class="copy-row"><input value="${escapeHtml(pageUrl())}" readonly /><button class="button secondary" type="button" data-copy-link>Copy link</button></div>`;
-    dialog.classList.add('is-open');
-    dialog.setAttribute('aria-hidden', 'false');
-  };
-
-  const hydrateShareActions = () => {
-    const privatePath = /\/(login|signup|checkout|account)\.html$/.test(window.location.pathname);
-    if (!privatePath && !document.querySelector('.share-actions')) {
-      const actions = document.createElement('div');
-      actions.className = 'share-actions';
-      actions.setAttribute('aria-label', 'Share or bookmark UXRay');
-      actions.innerHTML = `
-        <button type="button" data-share-action aria-label="Share this UXRay page">Share ${icon('share')}</button>
-        <button type="button" data-bookmark-action aria-label="Bookmark this UXRay page">Bookmark ${icon('bookmark')}</button>`;
-      document.body.appendChild(actions);
-    }
-
-    document.querySelectorAll('.share-actions').forEach((actions) => {
-      if (actions.dataset.hydrated === 'true') return;
-      const hasButtons = actions.querySelector('[data-share-action], [data-bookmark-action]');
-      if (!hasButtons) {
-        actions.innerHTML = `
-          <button type="button" data-share-action aria-label="Share this UXRay page">Share ${icon('share')}</button>
-          <button type="button" data-bookmark-action aria-label="Bookmark this UXRay page">Bookmark ${icon('bookmark')}</button>`;
-      }
-      actions.dataset.hydrated = 'true';
-    });
-  };
-
-  hydrateShareActions();
 
   const getPath = (object, path) => path.split('.').reduce((value, key) => value?.[key], object);
 
@@ -283,16 +203,8 @@
   hydrateDashboard();
 
   document.addEventListener('click', async (event) => {
-    const target = event.target.closest('[data-share-action], [data-bookmark-action], [data-copy-link], [data-copy-upgrade], [data-close-dialog], [data-dismiss-update]');
+    const target = event.target.closest('[data-copy-link], [data-copy-upgrade], [data-close-dialog], [data-dismiss-update]');
     if (!target) return;
-    if (target.matches('[data-share-action]')) {
-      event.preventDefault();
-      openShareDialog();
-    }
-    if (target.matches('[data-bookmark-action]')) {
-      event.preventDefault();
-      openBookmarkDialog();
-    }
     if (target.matches('[data-copy-link]')) {
       const ok = await copyText(pageUrl());
       target.textContent = ok ? 'Copied' : 'Copy failed';

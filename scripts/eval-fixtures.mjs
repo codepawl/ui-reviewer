@@ -1,17 +1,35 @@
 import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
+import net from "node:net";
 
 const phase = process.env.EVAL_PHASE ?? "baseline";
-const fixturePort = Number(process.env.FIXTURE_PORT ?? 5179);
-const apiPort = Number(process.env.API_PORT ?? 4317);
+const outDir = "reports/evals/spike-007";
+
+async function getFreePort() {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.unref();
+    server.on("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      const port = typeof address === "object" && address ? address.port : null;
+      server.close(() => {
+        if (port) resolve(port);
+        else reject(new Error("Could not allocate a free local port"));
+      });
+    });
+  });
+}
+
+const fixturePort = Number(process.env.FIXTURE_PORT ?? await getFreePort());
+const apiPort = Number(process.env.API_PORT ?? await getFreePort());
 const fixtureBase = `http://127.0.0.1:${fixturePort}`;
 const apiBase = `http://127.0.0.1:${apiPort}`;
-const outDir = "reports/evals/spike-007";
 
 const fixtures = [
   {
     id: "landing-chaos",
-    goal: "Landing page for an MCP UI reviewer that helps coding agents fix AI-generated frontend UX problems",
+    goal: "Landing page for UXRay, an MCP UI review tool that helps coding agents fix AI-generated frontend UX problems",
     audience: "technical founders and developers choosing tools for AI-generated frontend repair"
   },
   {
@@ -22,7 +40,7 @@ const fixtures = [
   {
     id: "onboarding-form",
     goal: "Onboarding flow that helps a technical team connect a repo and configure UI review without confusion or abandoned setup",
-    audience: "developers and founders setting up UI Reviewer for the first time"
+    audience: "developers and founders setting up UXRay for the first time"
   }
 ];
 
@@ -35,6 +53,20 @@ function startProcess(command, args, env = {}) {
   child.stdout.on("data", (data) => process.stdout.write(data));
   child.stderr.on("data", (data) => process.stderr.write(data));
   return child;
+}
+
+function stopProcess(child) {
+  return new Promise((resolve) => {
+    if (!child || child.exitCode !== null || child.signalCode !== null) return resolve();
+    const force = setTimeout(() => {
+      if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+    }, 3_000);
+    child.once("exit", () => {
+      clearTimeout(force);
+      resolve();
+    });
+    child.kill("SIGTERM");
+  });
 }
 
 async function waitFor(url) {
@@ -138,6 +170,5 @@ try {
   await writeFile(summaryPath, JSON.stringify(summary, null, 2));
   console.log(JSON.stringify(summary, null, 2));
 } finally {
-  fixtureServer.kill("SIGTERM");
-  apiServer.kill("SIGTERM");
+  await Promise.all([stopProcess(fixtureServer), stopProcess(apiServer)]);
 }

@@ -7,13 +7,13 @@ const label = process.env.DIFF_LABEL || "repair-loop";
 
 const transport = new StdioClientTransport({
   command: "npm",
-  args: ["run", "mcp"],
+  args: ["--silent", "run", "mcp"],
   cwd: process.cwd(),
   env: process.env
 });
 
 const client = new Client({
-  name: "ui-reviewer-diff-client",
+  name: "uxray-diff-client",
   version: "0.5.0"
 });
 

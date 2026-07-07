@@ -1,12 +1,12 @@
-# UI Reviewer MCP
+# UXRay MCP
 
-Product-shaped experiment for an MCP/API UI/UX review layer aimed at AI-generated frontends.
+Product-shaped experiment for UXRay, an MCP/API UI/UX review layer aimed at AI-generated frontends.
 
 ## Operating rules
 
 - Keep the first vertical slice small: MCP tool, URL/screenshot input, structured JSON review output.
 - Prefer measurable review-and-repair loops over generic design advice.
-- Do not add hosted billing/auth or customer-facing integrations until the local Codex demo works.
+- Keep local-first UXRay review working before adding hosted/customer-facing integrations.
 - For MVP, use LLM/vision adapters behind interfaces; do not fine-tune or train a model yet.
 
 ## Success metric for the first spike

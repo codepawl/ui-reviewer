@@ -91,11 +91,11 @@ const allFixedCategories = [...new Set(after.diffs.flatMap((diff) => diff.fixed_
 
 const rows = baseline.fixtures.map((fixture) => fixtureRow(fixture, afterById.get(fixture.id), diffById.get(fixture.id)));
 
-const markdown = `# UI Reviewer MCP Demo Report
+const markdown = `# UXRay MCP Demo Report
 
 ## One-line result
 
-UI Reviewer found major UX/layout failures in three AI-generated frontend fixtures, Codex repaired them using MCP screenshots and structured issues, and the eval score improved from ${baseline.average_score} to ${after.average_score}.
+UXRay found major UX/layout failures in three AI-generated frontend fixtures, Codex repaired them using MCP screenshots and structured issues, and the eval score improved from ${baseline.average_score} to ${after.average_score}.
 
 ## Why this matters
 
@@ -154,7 +154,7 @@ const html = `<!doctype html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>UI Reviewer MCP Demo Report</title>
+    <title>UXRay MCP Demo Report</title>
     <style>
       :root { color-scheme: dark; }
       body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #09090b; color: #f4f4f5; line-height: 1.6; }

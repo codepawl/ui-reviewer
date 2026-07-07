@@ -12,7 +12,7 @@ const run = (command, args, options = {}) => {
 const capture = (command, args) => execFileSync(command, args, { cwd: root, encoding: "utf8" }).trim();
 
 if (!existsSync(resolve(root, ".git"))) {
-  console.error("UXRay upgrade expects a git clone. Reinstall from https://github.com/codepawl/ui-reviewer if this folder is not a git repo.");
+  console.error("UXRay upgrade expects a git clone. Reinstall from https://github.com/codepawl/uxray if this folder is not a git repo.");
   process.exit(1);
 }
 

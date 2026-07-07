@@ -3,12 +3,12 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 
 const transport = new StdioClientTransport({
   command: "npm",
-  args: ["run", "mcp"],
+  args: ["--silent", "run", "mcp"],
   cwd: process.cwd()
 });
 
 const client = new Client({
-  name: "ui-reviewer-smoke-client",
+  name: "uxray-smoke-client",
   version: "0.1.0"
 });
 
@@ -24,7 +24,7 @@ const review = await client.callTool({
   name: "review_ui_url",
   arguments: {
     url: "http://localhost:3000",
-    goal: "Landing page for an MCP UI reviewer that helps coding agents fix AI-generated frontend UX problems",
+    goal: "Landing page for UXRay, an MCP UI review tool that helps coding agents fix AI-generated frontend UX problems",
     audience: "technical founders and developers using Codex, Lovable, Bolt, and Claude Code",
     viewport: ["desktop", "mobile"],
     strictness: "high",

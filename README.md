@@ -1,6 +1,6 @@
-# UI Reviewer MCP
+# UXRay MCP
 
-MCP-first, API-ready UI/UX review layer for AI-generated frontends.
+UXRay is a local-first, API-ready UI/UX review layer for AI-built frontends.
 
 The first spike validates the Codex integration path:
 
@@ -150,7 +150,7 @@ For the Codex-login path, do not force a server-side API key. Install the UXRay 
 
 ```bash
 HOME=/home/nxank4 codex exec --sandbox workspace-write --cd /home/nxank4/Code/hermes/codepawl/ui-reviewer \
-  "Use the ui-reviewer MCP server to call review_ui_url on http://127.0.0.1:4173 with viewport desktop and mobile, strictness high, use_vision false, return_images true. Inspect the attached screenshots yourself and report one visual UX issue."
+  "Use the uxray MCP server to call review_ui_url on http://127.0.0.1:4173 with viewport desktop and mobile, strictness high, use_vision false, return_images true. Inspect the attached screenshots yourself and report one visual UX issue."
 ```
 
 This is the preferred local demo path when Codex is logged in through the browser/link flow instead of an `OPENAI_API_KEY`.
@@ -168,7 +168,7 @@ Spike 004 validated the Codex loop: baseline score `82`, repaired score `100`, h
 Register with Codex:
 
 ```bash
-codex mcp add ui-reviewer -- npm --prefix /home/nxank4/Code/hermes/codepawl/ui-reviewer run mcp
+codex mcp add uxray -- npm --silent --prefix /home/nxank4/Code/hermes/codepawl/ui-reviewer run mcp
 codex mcp list
 ```
 
@@ -177,8 +177,8 @@ Hermes session note: this shell's default `HOME` is profile-local. To use An's r
 Verified Codex roundtrip:
 
 ```bash
-HOME=/home/nxank4 codex exec --sandbox read-only --cd /home/nxank4/Code/hermes/codepawl/ui-reviewer "Use the ui-reviewer MCP server..."
-# mcp: ui-reviewer/health_check (completed)
-# mcp: ui-reviewer/review_ui_url (completed)
+HOME=/home/nxank4 codex exec --sandbox read-only --cd /home/nxank4/Code/hermes/codepawl/ui-reviewer "Use the uxray MCP server..."
+# mcp: uxray/health_check (completed)
+# mcp: uxray/review_ui_url (completed)
 # score: 82
 ```

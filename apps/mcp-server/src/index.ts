@@ -10,7 +10,7 @@ import { judgeRenderedUiWithVision } from "../../../packages/vision-adapter/src/
 const UXRAY_VERSION = "0.3.1";
 
 const server = new McpServer({
-  name: "ui-reviewer",
+  name: "uxray",
   version: UXRAY_VERSION
 });
 
@@ -18,7 +18,7 @@ server.registerTool(
   "health_check",
   {
     title: "Health check",
-    description: "Verify that the UI Reviewer MCP server is reachable from the agent."
+    description: "Verify that the UXRay MCP server is reachable from the agent."
   },
   async () => ({
     content: [
@@ -27,9 +27,9 @@ server.registerTool(
         text: JSON.stringify(
           {
             ok: true,
-            service: "ui-reviewer",
+            service: "uxray",
             version: UXRAY_VERSION,
-            stage: "share-bookmark-update",
+            stage: "uxray-brand-sync",
             tools: ["health_check", "check_update", "review_ui_url", "review_ui_diff"],
             update_command: "npm run check:update"
           },
@@ -99,6 +99,7 @@ server.registerTool(
       audience: z.string().optional().describe("Target audience or user persona."),
       viewport: z.array(z.string()).optional().describe("Viewport names to review, e.g. desktop and mobile."),
       strictness: z.enum(["low", "medium", "high"]).optional().describe("Review strictness level."),
+      taste_profile: z.enum(["simplicity", "balanced", "complexity"]).optional().describe("Taste profile for subjective tradeoffs: simplicity, balanced, or complexity."),
       skip_render: z.boolean().optional().describe("If true, return a schema-only heuristic report without browser capture."),
       use_vision: z.boolean().optional().describe("If true, run a vision LLM judge over captured screenshots when OPENAI_API_KEY is configured."),
       vision_model: z.string().optional().describe("Optional OpenAI vision-capable model override, e.g. gpt-4o-mini."),
@@ -116,7 +117,8 @@ server.registerTool(
       goal: args.goal,
       audience: args.audience,
       viewport: args.viewport,
-      strictness: args.strictness
+      strictness: args.strictness,
+      taste_profile: args.taste_profile
     };
 
     if (!args.skip_render) {

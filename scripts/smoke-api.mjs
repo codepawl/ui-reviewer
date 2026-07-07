@@ -30,7 +30,7 @@ console.log("HEALTH", JSON.stringify({ ok: health.ok, service: health.service, s
 
 const review = await postJson("/v1/reviews/url", {
   url: testUrl,
-  goal: "Landing page for an MCP UI reviewer that helps coding agents fix AI-generated frontend UX problems",
+  goal: "Landing page for UXRay, an MCP UI review tool that helps coding agents fix AI-generated frontend UX problems",
   audience: "technical founders and developers using Codex, Lovable, Bolt, and Claude Code",
   viewport: ["desktop", "mobile"],
   strictness: "high"

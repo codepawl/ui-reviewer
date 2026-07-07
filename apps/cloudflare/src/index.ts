@@ -182,7 +182,7 @@ async function createCreemCheckout(env: Env, origin: string, plan: BillingPlan, 
 const demoReport = {
   product: "UXRay",
   stage: "cloudflare-demo",
-  summary: "UI Reviewer found major UX/layout failures in three AI-generated frontend fixtures, Codex repaired them using MCP screenshots and structured issues, and the eval score improved from 39 to 100.",
+  summary: "UXRay found major UX/layout failures in three AI-generated frontend fixtures, Codex repaired them using MCP screenshots and structured issues, and the eval score improved from 39 to 100.",
   metrics: {
     average_score_before: 39,
     average_score_after: 100,
@@ -246,14 +246,14 @@ const installGuide = {
   version: UXRAY_VERSION,
   docs: "/docs.html",
   recommended_local_demo: "npm run demo:pipeline",
-  github: "https://github.com/codepawl/ui-reviewer",
+  github: "https://github.com/codepawl/uxray",
   agents: {
     codex: {
-      command: "codex mcp add uxray -- npm --prefix /absolute/path/to/uxray run mcp",
+      command: "codex mcp add uxray -- npm --silent --prefix /absolute/path/to/uxray run mcp",
       prompt: "Auto-trigger UXRay for generated frontend review/repair tasks. Call health_check, then review_ui_url with return_images=true, viewport desktop+mobile, strictness high, inspect screenshots, repair only repair_plan items, rerun review_ui_url, then compare reports."
     },
     claude_code: {
-      command: "claude mcp add uxray -- npm --prefix /absolute/path/to/uxray run mcp",
+      command: "claude mcp add uxray -- npm --silent --prefix /absolute/path/to/uxray run mcp",
       prompt: "Use the uxray MCP server to review my local frontend URL, apply the structured repair instructions, and rerun the review."
     },
     local_api: {
@@ -963,10 +963,10 @@ export default {
         update_available: updateAvailable,
         severity: updateAvailable ? "recommended" : "none",
         release_notes: [
-          "Share and bookmark actions are now interactive.",
-          "Bookmark prompts visitors to create an account or log in before saving reports.",
-          "Share opens platform-specific options plus copy-link fallback.",
-          "Local installs can run npm run check:update for upgrade/cancel flow."
+          "UXRay branding now appears consistently across the public site, API, and MCP server.",
+          "The favicon now matches the UXRay page logo mark.",
+          "Local MCP launch commands now use npm --silent so stdio JSON-RPC is not polluted by npm banners.",
+          "The light homepage design system now spans the public site pages."
         ],
         commands: {
           check: "npm run check:update",
@@ -975,7 +975,7 @@ export default {
           cancel: "Dismiss the update prompt and keep the current local version."
         },
         docs: "/docs.html#updates",
-        github: "https://github.com/codepawl/ui-reviewer"
+        github: "https://github.com/codepawl/uxray"
       });
     }
 

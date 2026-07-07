@@ -2,7 +2,7 @@
 
 ## Question
 
-Given a local UI Reviewer MCP server, when Codex is configured with it, then Codex can call `review_ui_url` and receive structured UI/UX review JSON.
+Given a local UXRay MCP server, when Codex is configured with it, then Codex can call `review_ui_url` and receive structured UI/UX review JSON.
 
 ## Risk
 

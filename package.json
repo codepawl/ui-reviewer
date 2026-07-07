@@ -1,7 +1,7 @@
 {
-  "name": "ui-reviewer",
+  "name": "uxray",
   "version": "0.3.1",
-  "description": "MCP-first UI/UX review layer for AI-generated frontend experiments.",
+  "description": "UXRay is a local-first UI/UX review layer for AI-built frontends.",
   "type": "module",
   "private": true,
   "scripts": {
@@ -25,7 +25,11 @@
     "review:url": "node scripts/review-url.mjs",
     "review:diff": "node scripts/review-diff.mjs",
     "check:update": "node scripts/check-update.mjs",
-    "upgrade": "node scripts/upgrade.mjs"
+    "upgrade": "node scripts/upgrade.mjs",
+    "annotation:pairwise": "node scripts/annotation-pairwise-task.mjs",
+    "annotation:ingest:x": "node scripts/annotation-ingest-x-poll.mjs",
+    "test:core": "tsx scripts/test-reviewer-core.ts",
+    "test:annotation": "node scripts/test-annotation-pipeline.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

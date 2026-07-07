@@ -12,14 +12,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body>
+  <body class="home-body">
     <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
     <header class="nav">
       <a class="brand" href="/"><span class="mark"></span><span>UXRay</span></a>
       <nav>
         <a href="/demo-report.html">Proof</a>
         <a href="/#pricing">Pricing</a>
-        <a href="https://github.com/codepawl/ui-reviewer" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://github.com/codepawl/uxray" target="_blank" rel="noreferrer">GitHub</a>
         <a class="nav-cta" href="/checkout.html?plan=pro">Pay</a>
       </nav>
     </header>
@@ -30,20 +30,27 @@
         <p class="lede">MCP first, API ready. UXRay renders your frontend with Chrome/Playwright, returns screenshots, layout metrics, structured UX issues, and a concrete repair plan, then Codex or Claude Code repairs the UI and asks UXRay to score the diff.</p>
       </section>
 
+      <h2 class="sr-only">Quick facts</h2>
       <section class="docs-grid compact" aria-label="Quick facts">
-        <article class="docs-card"><h3>Best first run</h3><p><code>npm run demo:pipeline</code> resets flawed fixtures, runs baseline eval, asks Codex to repair, reruns eval, and writes the report.</p></article>
+        <article class="docs-card"><h3>Best first run</h3><p><code>npm run demo:pipeline</code> runs baseline eval, asks Codex to repair, reruns eval, and writes the report.</p></article>
         <article class="docs-card"><h3>Real proof</h3><p>The public gallery uses real screenshots from the same local eval pipeline: average score <strong>39 → 100</strong>.</p></article>
-        <article class="docs-card"><h3>MCP tools</h3><p><code>review_ui_url</code> now includes layout metrics and <code>repair_plan</code> steps, plus <code>review_ui_diff</code> for regression gating.</p></article>
+        <article class="docs-card"><h3>MCP tools</h3><p><code>review_ui_url</code> includes layout metrics, anti-slop checks, repair steps, and <code>review_ui_diff</code> gates.</p></article>
         <article class="docs-card"><h3>Payment</h3><p><code>/v1/billing/checkout</code> creates a Creem checkout session for Pro, Team, or review credits.</p></article>
       </section>
 
-      <section class="callout">
-        <strong>Fair demo setup</strong>
-        <p>The screenshots were captured from the same fixture family, same local reviewer, same viewport contract, and same repair-loop prompt style. Baseline URL: <code>127.0.0.1:5182</code>. After URL: <code>127.0.0.1:5183</code>.</p>
+      <section class="docs-evidence-list" aria-label="UXRay proof and quality gates">
+        <article class="docs-note">
+          <strong>Fair demo setup</strong>
+          <p>Same fixture family, reviewer, viewport contract, and repair-loop prompt style. Baseline <code>127.0.0.1:5182</code>; after <code>127.0.0.1:5183</code>.</p>
+        </article>
+        <article class="docs-note">
+          <strong>Anti-slop gates</strong>
+          <p>Contrast, overflow, sticky overlays, tap targets, hierarchy, copy specificity, decorative gradients, nested cards, one-sided accent cards, and repeated AI-marketing cadence are checked before a repair is treated as shippable.</p>
+        </article>
       </section>
 
       <h2 id="local-install">1. Install locally</h2>
-      <pre><code>git clone https://github.com/codepawl/ui-reviewer uxray
+      <pre><code>git clone https://github.com/codepawl/uxray uxray
 cd uxray
 npm install
 npm run typecheck
@@ -51,7 +58,7 @@ npm run build</code></pre>
       <p>If the repo is still private while testing, use the local project folder directly when registering MCP clients.</p>
 
       <h2 id="codex">2. Add to Codex</h2>
-      <pre><code>codex mcp add uxray -- npm --prefix /absolute/path/to/uxray run mcp
+      <pre><code>codex mcp add uxray -- npm --silent --prefix /absolute/path/to/uxray run mcp
 codex mcp list
 codex mcp get uxray</code></pre>
       <p>Prompt Codex with a narrow repair contract, or install the skill below so Codex knows when to auto-trigger this loop:</p>
@@ -63,7 +70,7 @@ Fix only the UI files needed.
 Call review_ui_url again and compare before/after with review_ui_diff.</code></pre>
 
       <h2 id="claude-code">3. Add to Claude Code</h2>
-      <pre><code>claude mcp add uxray -- npm --prefix /absolute/path/to/uxray run mcp
+      <pre><code>claude mcp add uxray -- npm --silent --prefix /absolute/path/to/uxray run mcp
 claude mcp list</code></pre>
       <pre><code>Use the uxray MCP server to review my local frontend URL.
 Use screenshot evidence, high-severity issues, layout metrics, and repair_plan as the edit contract.
@@ -118,7 +125,25 @@ npm run upgrade
         <article class="docs-card"><h3>Dashboard</h3><p>Usage, saved reports, achievements, and advanced feature bets from <code>/v1/account/dashboard</code>.</p></article>
       </div>
 
-      <h2 id="pricing">9. Pricing direction</h2>
+      <h2 id="preference-learning">9. Preference learning</h2>
+      <p>UXRay can collect pairwise preference labels instead of pretending there is one universal taste. Start with a simplicity, balanced, or complexity profile, then use public polls, expert notes, and model judges as separate evidence streams.</p>
+      <pre><code>npm run annotation:pairwise -- \
+  --axis spacing_rhythm \
+  --profile simplicity \
+  --a-label "tight code-block gap" \
+  --b-label "28px breathing room"
+
+npm run annotation:ingest:x -- \
+  --task data/annotations/tasks/&lt;task_id&gt;.json \
+  --post-id 1234567890 \
+  --a 42 --b 71 --tie 5</code></pre>
+      <div class="docs-evidence-list">
+        <article class="docs-note"><strong>Public annotation</strong><p>X polls should ask pairwise questions like “which version is easier to scan?” and store only aggregate counts, not voter identities.</p></article>
+        <article class="docs-note"><strong>Dynamic schema</strong><p>The dataset keeps screenshots, route type, metrics, taste profile, labels, source confidence, and derived targets for filters or model training.</p></article>
+        <article class="docs-note"><strong>User taste setup</strong><p><code>taste_profile</code> lets reviews bias toward simplicity, balanced defaults, or richer complexity when the information architecture can support it.</p></article>
+      </div>
+
+      <h2 id="pricing">10. Pricing direction</h2>
       <p>Local MCP stays free. Hosted rendering is priced by review calls and bundled for teams. Payment goes through Creem checkout sessions. The paid API runs through Cloudflare with a Fly.io Playwright worker for browser rendering.</p>
       <pre><code>POST /v1/billing/checkout
 # plan=pro     -> Creem UXRay Pro checkout

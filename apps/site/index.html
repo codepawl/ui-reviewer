@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body>
+  <body class="home-body">
     <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
     <header class="nav">
       <a class="brand" href="/" aria-label="UXRay home"><span class="mark"></span><span>UXRay</span></a>
@@ -20,101 +20,121 @@
         <a href="/demo-report.html">Proof</a>
         <a href="#pricing">Pricing</a>
         <a href="/docs.html">Docs</a>
-        <a href="https://github.com/codepawl/ui-reviewer" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://github.com/codepawl/uxray" target="_blank" rel="noreferrer">GitHub</a>
         <a href="/login.html">Log in</a>
         <a class="nav-cta" href="/checkout.html?plan=pro">Pay</a>
       </nav>
     </header>
 
-    <main>
-      <section class="hero shell">
-        <div class="hero-copy reveal">
-          <h1>AI builds the UI. UXRay catches the mess.</h1>
-          <p class="lede">Real screenshots, structured UX issues, and repair prompts your coding agent can act on. Then a before/after scorecard proves the UI actually improved.</p>
-          <div class="actions">
-            <a class="button primary" href="/checkout.html?plan=pro">Pay for hosted reviews</a>
+    <main class="home-main">
+      <section class="open-hero shell reveal">
+        <div class="open-hero-copy">
+          <p class="home-kicker">UXRay</p>
+          <h1>UI review for AI-built frontends</h1>
+          <p class="open-subtitle">Screenshots, UX issues, repair prompts, and before/after scorecards for Codex and Claude Code.</p>
+          <div class="home-actions">
+            <a class="button primary" href="/docs.html#codex">Install locally</a>
             <a class="button secondary" href="/demo-report.html">View proof gallery</a>
           </div>
         </div>
 
-        <div class="hero-evidence reveal" id="before-after" aria-label="Real UXRay before and after screenshots">
-          <div class="evidence-head">
-            <span>Real fixture evidence</span>
-            <span>click any screenshot to zoom</span>
+        <div class="open-command" aria-label="Install command">
+          <code>codex mcp add uxray -- npm --silent --prefix "$PWD" run mcp</code>
+          <a href="/docs.html#codex" aria-label="Open Codex install docs">↗</a>
+        </div>
+
+        <div class="open-preview" id="before-after" aria-label="UXRay before and after hierarchy preview">
+          <span class="preview-label left">Without UXRay</span>
+          <span class="preview-label right">With UXRay</span>
+          <article class="review-preview-card before-card">
+            <div class="mini-browser"><span></span><span></span><span></span></div>
+            <div class="bad-ui-preview" aria-label="Example AI-built UI before review">
+              <h2>Make UI nice</h2>
+              <p>Tools, dashboards, screenshots, prototypes, pages, code, accessibility, onboarding, analytics, exports, founders, engineers, managers...</p>
+              <div class="tiny-actions"><span>Start free</span><span>Book demo</span><span>Upload screenshot</span></div>
+              <div class="tiny-grid"><span>Free</span><span>Pro</span><span>Enterprise</span></div>
+            </div>
+            <footer><strong>46 / 100</strong><span>vague hierarchy, competing CTAs, mobile overflow</span></footer>
+          </article>
+          <article class="review-preview-card after-card">
+            <div class="mini-browser"><span></span><span></span><span></span></div>
+            <div class="report-preview" aria-label="UXRay repair report preview">
+              <div>
+                <span class="score-pill">100 / 100</span>
+                <h2>Review AI-built UI before it ships</h2>
+                <p>Run a local MCP review, get screenshot-backed issues, then hand the repair list back to your coding agent.</p>
+              </div>
+              <div class="report-steps"><span>Render</span><span>Review</span><span>Repair</span><span>Diff</span></div>
+            </div>
+            <footer><strong>100 / 100</strong><span>one path, clear task, mobile-safe repair</span></footer>
+          </article>
+        </div>
+
+        <p class="hero-statement">An agent-native review loop that turns messy generated UI into a measurable repair contract.</p>
+      </section>
+
+      <section class="open-steps shell reveal" aria-label="UXRay review loop">
+        <h2 class="sr-only">How UXRay reviews and repairs UI</h2>
+        <article><span>1</span><h3>Render the interface</h3><p>Capture desktop and mobile screenshots, DOM structure, headings, actions, forms, and layout metrics.</p></article>
+        <article><span>2</span><h3>UXRay finds the breaks</h3><p>Score hierarchy, contrast, copy density, tap targets, responsiveness, and state completeness.</p></article>
+        <article><span>3</span><h3>The agent repairs it</h3><p>Codex or Claude Code receives concrete evidence, selector hints, acceptance checks, and risks.</p></article>
+        <article><span>4</span><h3>Diff proves it improved</h3><p><code>review_ui_diff</code> compares scores, high-severity issues, and fixed categories before shipping.</p></article>
+      </section>
+
+      <section class="use-cases shell reveal" aria-label="UXRay use cases">
+        <div class="section-center">
+          <h2>UI linting for every agent-built surface</h2>
+          <p>From landing pages to dashboards, UXRay gives coding agents the interface feedback they usually miss.</p>
+        </div>
+        <div class="case-board">
+          <article class="case-row active"><div><h3>Landing pages</h3><p>Catch vague hero copy, CTA conflicts, weak visual hierarchy, and responsive polish before launch.</p></div><div class="case-visual"><span>H1 clarity</span><span>CTA path</span><span>Above-fold proof</span></div></article>
+          <article class="case-row"><h3>Dashboards</h3><p>Flag dense cards, unclear scan paths, too many equally weighted actions, and missing state labels.</p></article>
+          <article class="case-row"><h3>Onboarding forms</h3><p>Review required fields, validation, loading, success, error, cancel, and recovery states.</p></article>
+          <article class="case-row"><h3>Docs and pricing</h3><p>Check section order, scannability, trust proof, plan hierarchy, and install-to-run friction.</p></article>
+        </div>
+      </section>
+
+      <section class="proof-metric shell reveal" id="proof">
+        <h2>Average score 39 → 100</h2>
+        <p>Same fixtures, same reviewer, same environment. UXRay reviewed flawed screens, let Codex repair them with screenshot evidence, then scored the diff.</p>
+        <a class="button secondary" href="/demo-report.html">View real report</a>
+      </section>
+
+      <section class="feature-grid shell reveal" aria-label="UXRay capabilities">
+        <article><iconify-icon icon="lucide:camera" aria-hidden="true"></iconify-icon><h3>Real browser evidence</h3><p>Chrome screenshots, DOM summaries, layout metrics, and zoomable proof.</p></article>
+        <article><iconify-icon icon="lucide:list-checks" aria-hidden="true"></iconify-icon><h3>Principled UX rules</h3><p>NN/g heuristics, WCAG, Fitts/Hick/Gestalt checks, contrast, labels, and form states.</p></article>
+        <article><iconify-icon icon="lucide:wand-sparkles" aria-hidden="true"></iconify-icon><h3>Agent repair contract</h3><p>Selector hints, change intent, constraints, acceptance checks, and regression risks.</p></article>
+        <article><iconify-icon icon="lucide:scan-search" aria-hidden="true"></iconify-icon><h3>Before/after diff</h3><p>Measure score delta, fixed categories, introduced risks, and high-severity regressions.</p></article>
+        <article><iconify-icon icon="lucide:terminal" aria-hidden="true"></iconify-icon><h3>MCP first</h3><p>Works where builders already run Codex, Claude Code, local APIs, and CLI workflows.</p></article>
+        <article><iconify-icon icon="lucide:shield-check" aria-hidden="true"></iconify-icon><h3>CI-ready gate</h3><p>Use reports as a lightweight UI quality gate for AI-generated frontend changes.</p></article>
+      </section>
+
+      <section class="stack-strip shell reveal" aria-label="UXRay works with your stack">
+        <h2>UXRay works with your agent stack</h2>
+        <p>Local MCP, hosted API, screenshot reports, and repair loops without changing your frontend framework.</p>
+        <div class="pill-marquee" aria-label="Supported tools">
+          <span>Codex</span><span>Claude Code</span><span>MCP</span><span>Playwright</span><span>Cloudflare</span><span>Fly.io</span><span>Vercel</span><span>React</span><span>Static HTML</span>
+        </div>
+      </section>
+
+      <section class="cloud-band reveal" id="pricing">
+        <div class="shell">
+          <h2>Introducing UXRay Cloud</h2>
+          <p>Hosted screenshot reviews, saved reports, dashboard history, and API credits for teams that want the same repair loop without running Chrome locally.</p>
+          <a class="button primary" href="/checkout.html?plan=pro">Start Pro checkout</a>
+          <div class="cloud-grid">
+            <article><h3>Hosted rendering</h3><p>Browser-capable review worker for public URLs and team workflows.</p></article>
+            <article><h3>Saved reports</h3><p>Shareable screenshots, scores, top issues, and repair plans.</p></article>
+            <article><h3>Plugin packs</h3><p>Rules for landing pages, dashboards, onboarding, docs, settings, and pricing.</p></article>
+            <article><h3>API + CI gates</h3><p>Call UXRay from automation and block regressions before merge.</p></article>
           </div>
-          <div class="evidence-grid">
-            <figure class="evidence-card before-card">
-              <div class="media-frame"><img class="zoomable" tabindex="0" role="button" src="/assets/evidence/landing-before.webp" alt="Real before screenshot from the landing-chaos fixture before UXRay repair" aria-label="Real before screenshot from the landing-chaos fixture before UXRay repair — click to zoom" /></div>
-              <figcaption><strong>Before</strong><span>46 / 100 · vague H1, CTA conflict, mobile overflow</span></figcaption>
-            </figure>
-            <figure class="evidence-card after-card">
-              <div class="media-frame"><img class="zoomable" tabindex="0" role="button" src="/assets/evidence/landing-after.webp" alt="Real after screenshot from the same landing-chaos fixture after Codex repaired it using UXRay" aria-label="Real after screenshot from the same landing-chaos fixture after Codex repaired it using UXRay — click to zoom" /></div>
-              <figcaption><strong>After</strong><span>100 / 100 · one CTA, clear task, mobile-safe</span></figcaption>
-            </figure>
-          </div>
         </div>
       </section>
 
-      <section class="proof shell reveal" id="proof">
-        <h2>Same fixtures. Same reviewer. Same environment.</h2>
-        <p class="section-copy">UXRay reset three flawed AI-generated screens, reviewed them locally, let Codex repair with MCP screenshots, then reviewed again. The gallery shows the actual screenshots from that run, plus more scenarios you can install and run locally.</p>
-        <div class="metrics">
-          <article><strong>39 → 100</strong><span>average score</span></article>
-          <article><strong>9 → 0</strong><span>high severity</span></article>
-          <article><strong>10+</strong><span>demo scenarios</span></article>
-        </div>
-        <div class="proof-actions">
-          <a class="button primary" href="/demo-report.html">Open proof gallery</a>
-          <a class="button secondary" href="/docs.html#demo-pipeline">Reproduce the run</a>
-        </div>
-      </section>
-
-      <section class="integrations shell reveal" aria-label="Agent integrations">
-        <div class="integration-head">
-          <h2>Agents already know the path.</h2>
-          <p class="section-copy">UXRay plugs into the tools builders use: Codex, Claude Code, MCP clients, local APIs, and CI-style repair gates.</p>
-        </div>
-        <div class="integration-row">
-          <article><iconify-icon icon="simple-icons:openai" aria-hidden="true"></iconify-icon><span>Codex</span></article>
-          <article><iconify-icon icon="simple-icons:anthropic" aria-hidden="true"></iconify-icon><span>Claude Code</span></article>
-          <article><iconify-icon icon="lucide:network" aria-hidden="true"></iconify-icon><span>MCP</span></article>
-          <article><iconify-icon icon="lucide:terminal-square" aria-hidden="true"></iconify-icon><span>CLI</span></article>
-          <article><iconify-icon icon="simple-icons:cloudflare" aria-hidden="true"></iconify-icon><span>Hosted API</span></article>
-        </div>
-      </section>
-
-      <section class="method shell reveal">
-        <div>
-          <h2>Review → repair → diff.</h2>
-        </div>
-        <div class="method-list">
-          <article><span>01</span><div><h3>Render the UI</h3><p>Desktop and mobile screenshots, DOM text, headings, buttons, links, forms, and overflow signals.</p></div></article>
-          <article><span>02</span><div><h3>Tell the agent what broke</h3><p>Severity, category, evidence, affected area, and a focused repair prompt.</p></div></article>
-          <article><span>03</span><div><h3>Measure the fix</h3><p><code>review_ui_diff</code> compares score, issue count, high-severity count, and fixed categories.</p></div></article>
-        </div>
-      </section>
-
-      <section class="install shell reveal" id="install">
-        <h2>Use it where your agent already works.</h2>
-        <div class="install-panel">
-          <div class="tabs" aria-label="Install targets">
-            <a href="/docs.html#codex">Codex</a>
-            <a href="/docs.html#claude-code">Claude Code</a>
-            <a href="/docs.html#skills">UXRay skill</a>
-            <a href="/docs.html#local-api">Local API</a>
-          </div>
-          <pre><code>npm install
-npm run typecheck
-codex mcp add uxray -- npm --prefix "$PWD" run mcp
-npm run demo:pipeline</code></pre>
-        </div>
-        <p class="fine-print">Cloudflare hosts the public site, API, saved reports, and dashboard shell. Browser rendering runs through the Fly.io Playwright worker because it needs real Chrome.</p>
-      </section>
-
-      <section class="pricing shell reveal" id="pricing">
-        <div>
-          <h2>Start local. Pay when reviews run hosted.</h2>
-          <p class="section-copy">The wedge is free MCP for builders. The paid layer is hosted screenshot rendering, API review calls, team seats, and plugins that keep agents from making the same UI mistakes.</p>
+      <section class="pricing shell reveal">
+        <div class="section-center">
+          <h2>Start local. Upgrade when review volume matters.</h2>
+          <p>Free MCP for builders. Hosted reviews and team workflows when you need durable reports and shared gates.</p>
         </div>
         <div class="pricing-grid">
           <article class="price-card"><span>Local</span><strong>$0</strong><p>Run UXRay as local MCP with Codex or Claude Code.</p><a class="button secondary" href="/docs.html">Install</a></article>

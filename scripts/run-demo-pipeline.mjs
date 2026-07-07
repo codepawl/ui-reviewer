@@ -1,15 +1,40 @@
 import { spawn } from "node:child_process";
+import net from "node:net";
 import { mkdir, writeFile } from "node:fs/promises";
 
 const codexHome = process.env.CODEX_HOME ?? "/home/nxank4";
-const repairPort = Number(process.env.REPAIR_FIXTURE_PORT ?? 5181);
-const baselineFixturePort = process.env.BASELINE_FIXTURE_PORT ?? "5182";
-const baselineApiPort = process.env.BASELINE_API_PORT ?? "4324";
-const afterFixturePort = process.env.AFTER_FIXTURE_PORT ?? "5183";
-const afterApiPort = process.env.AFTER_API_PORT ?? "4325";
 const skipCodexRepair = process.env.SKIP_CODEX_REPAIR === "1";
 const resetFixtures = process.env.RESET_FIXTURES !== "0";
+const codexRepairTimeoutMs = Number(process.env.CODEX_REPAIR_TIMEOUT_MS ?? 10 * 60 * 1000);
 const logDir = "reports/demo";
+
+async function getFreePort() {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.unref();
+    server.on("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      const port = typeof address === "object" && address ? address.port : null;
+      server.close(() => {
+        if (port) resolve(port);
+        else reject(new Error("Could not allocate a free local port"));
+      });
+    });
+  });
+}
+
+function withTimeout(child, timeoutMs, label) {
+  if (!timeoutMs || timeoutMs <= 0) return null;
+  return setTimeout(() => {
+    if (child.exitCode !== null || child.signalCode !== null) return;
+    console.error(`\n${label} exceeded ${timeoutMs}ms; terminating process ${child.pid}`);
+    child.kill("SIGTERM");
+    setTimeout(() => {
+      if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+    }, 5_000).unref();
+  }, timeoutMs);
+}
 
 function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
@@ -19,6 +44,7 @@ function run(command, args, options = {}) {
       env: { ...process.env, ...options.env },
       stdio: options.capture ? ["ignore", "pipe", "pipe"] : "inherit"
     });
+    const timer = withTimeout(child, options.timeoutMs, `${command} ${args.join(" ")}`);
     let stdout = "";
     let stderr = "";
     if (options.capture) {
@@ -31,10 +57,14 @@ function run(command, args, options = {}) {
         process.stderr.write(data);
       });
     }
-    child.on("error", reject);
-    child.on("exit", (code) => {
+    child.on("error", (error) => {
+      if (timer) clearTimeout(timer);
+      reject(error);
+    });
+    child.on("exit", (code, signal) => {
+      if (timer) clearTimeout(timer);
       if (code === 0) resolve({ stdout, stderr });
-      else reject(new Error(`${command} ${args.join(" ")} exited with ${code}`));
+      else reject(new Error(`${command} ${args.join(" ")} exited with ${code ?? signal}`));
     });
   });
 }
@@ -48,6 +78,20 @@ function startProcess(command, args, env = {}) {
   child.stdout.on("data", (data) => process.stdout.write(data));
   child.stderr.on("data", (data) => process.stderr.write(data));
   return child;
+}
+
+function stopProcess(child) {
+  return new Promise((resolve) => {
+    if (!child || child.exitCode !== null || child.signalCode !== null) return resolve();
+    const force = setTimeout(() => {
+      if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+    }, 3_000);
+    child.once("exit", () => {
+      clearTimeout(force);
+      resolve();
+    });
+    child.kill("SIGTERM");
+  });
 }
 
 async function waitFor(url) {
@@ -66,10 +110,16 @@ async function waitFor(url) {
 }
 
 function repairPrompt(baseUrl) {
-  return `We are running the one-shot UI Reviewer MCP demo pipeline. Three flawed fixtures are served at: ${baseUrl}/landing-chaos/, ${baseUrl}/dashboard-density/, and ${baseUrl}/onboarding-form/. For each fixture, use the ui-reviewer MCP server to call review_ui_url with viewport desktop and mobile, strictness high, return_images true, use_vision false. Inspect the MCP-returned screenshots and structured issues. Then edit only the matching files under examples/eval-fixtures/*/index.html to repair the major issues. Requirements: landing has one primary CTA and no mobile overflow; dashboard has clear primary workflow, fewer nav/action choices, responsive table/cards, and no mobile overflow; onboarding has clear progress/state structure, one primary submit action, grouped fields, and no mobile overflow. Do not commit. After edits, report one bullet per fixture with the repair made.`;
+  return `We are running the one-shot UXRay MCP demo pipeline. Three flawed fixtures are served at: ${baseUrl}/landing-chaos/, ${baseUrl}/dashboard-density/, and ${baseUrl}/onboarding-form/. For each fixture, use the uxray MCP server to call review_ui_url with viewport desktop and mobile, strictness high, return_images true, use_vision false. Inspect the MCP-returned screenshots and structured issues. Then edit only the matching files under examples/eval-fixtures/*/index.html to repair the major issues. Requirements: landing has one primary CTA and no mobile overflow; dashboard has clear primary workflow, fewer nav/action choices, responsive table/cards, and no mobile overflow; onboarding has clear progress/state structure, one primary submit action, grouped fields, and no mobile overflow. Do not commit. After edits, report one bullet per fixture with the repair made.`;
 }
 
 await mkdir(logDir, { recursive: true });
+
+const baselineFixturePort = Number(process.env.BASELINE_FIXTURE_PORT ?? await getFreePort());
+const baselineApiPort = Number(process.env.BASELINE_API_PORT ?? await getFreePort());
+const repairPort = Number(process.env.REPAIR_FIXTURE_PORT ?? await getFreePort());
+const afterFixturePort = Number(process.env.AFTER_FIXTURE_PORT ?? await getFreePort());
+const afterApiPort = Number(process.env.AFTER_API_PORT ?? await getFreePort());
 
 if (resetFixtures) {
   await run("node", ["scripts/reset-eval-fixtures.mjs"]);
@@ -81,8 +131,8 @@ await run("npm", ["run", "eval:fixtures"], {
   env: {
     OPENAI_API_KEY: "",
     EVAL_PHASE: "baseline",
-    FIXTURE_PORT: baselineFixturePort,
-    API_PORT: baselineApiPort
+    FIXTURE_PORT: String(baselineFixturePort),
+    API_PORT: String(baselineApiPort)
   }
 });
 
@@ -103,6 +153,7 @@ if (!skipCodexRepair) {
       ],
       {
         capture: true,
+        timeoutMs: codexRepairTimeoutMs,
         env: {
           HOME: codexHome,
           OPENAI_API_KEY: ""
@@ -111,9 +162,9 @@ if (!skipCodexRepair) {
     );
     const logPath = `${logDir}/one-shot-codex-repair.log`;
     await writeFile(logPath, `${result.stdout}\n${result.stderr}`);
-    codexResult = { skipped: false, log_path: logPath };
+    codexResult = { skipped: false, log_path: logPath, timeout_ms: codexRepairTimeoutMs };
   } finally {
-    fixtureServer.kill("SIGTERM");
+    await stopProcess(fixtureServer);
   }
 }
 
@@ -121,8 +172,8 @@ await run("npm", ["run", "eval:fixtures"], {
   env: {
     OPENAI_API_KEY: "",
     EVAL_PHASE: "after",
-    FIXTURE_PORT: afterFixturePort,
-    API_PORT: afterApiPort
+    FIXTURE_PORT: String(afterFixturePort),
+    API_PORT: String(afterApiPort)
   }
 });
 
@@ -134,6 +185,13 @@ console.log("\nONE_SHOT_DEMO_PIPELINE_RESULT");
 console.log(JSON.stringify({
   status: "completed",
   reset_fixtures: resetFixtures,
+  ports: {
+    baseline_fixture: baselineFixturePort,
+    baseline_api: baselineApiPort,
+    repair_fixture: repairPort,
+    after_fixture: afterFixturePort,
+    after_api: afterApiPort
+  },
   codex_repair: codexResult,
   report_command_output: report.stdout.trim().slice(-1200)
 }, null, 2));

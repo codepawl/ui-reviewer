@@ -13,16 +13,17 @@ const label = process.env.REVIEW_LABEL || "review";
 const outputDir = process.env.REVIEW_OUTPUT_DIR || "reports/reviews";
 const returnImages = process.env.RETURN_IMAGES === "1";
 const useVision = process.env.USE_VISION === "1";
+const tasteProfile = process.env.REVIEW_TASTE_PROFILE || "balanced";
 
 const transport = new StdioClientTransport({
   command: "npm",
-  args: ["run", "mcp"],
+  args: ["--silent", "run", "mcp"],
   cwd: process.cwd(),
   env: process.env
 });
 
 const client = new Client({
-  name: "ui-reviewer-review-url-client",
+  name: "uxray-review-url-client",
   version: "0.4.0"
 });
 
@@ -32,10 +33,11 @@ const toolResult = await client.callTool({
   name: "review_ui_url",
   arguments: {
     url,
-    goal: process.env.REVIEW_GOAL || "Landing page for an MCP UI reviewer that helps coding agents fix AI-generated frontend UX problems",
+    goal: process.env.REVIEW_GOAL || "Landing page for UXRay, an MCP UI review tool that helps coding agents fix AI-generated frontend UX problems",
     audience: process.env.REVIEW_AUDIENCE || "technical founders and developers using Codex, Lovable, Bolt, and Claude Code",
     viewport: ["desktop", "mobile"],
     strictness: "high",
+    taste_profile: tasteProfile,
     use_vision: useVision,
     return_images: returnImages
   }

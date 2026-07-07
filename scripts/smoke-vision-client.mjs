@@ -22,13 +22,13 @@ console.log(`VISION_MODEL=${process.env.OPENAI_VISION_MODEL || "gpt-4o-mini"}`);
 
 const transport = new StdioClientTransport({
   command: "npm",
-  args: ["run", "mcp"],
+  args: ["--silent", "run", "mcp"],
   cwd: process.cwd(),
   env: process.env
 });
 
 const client = new Client({
-  name: "ui-reviewer-vision-smoke-client",
+  name: "uxray-vision-smoke-client",
   version: "0.3.0"
 });
 
@@ -38,7 +38,7 @@ const review = await client.callTool({
   name: "review_ui_url",
   arguments: {
     url,
-    goal: "Landing page for an MCP UI reviewer that helps coding agents fix AI-generated frontend UX problems",
+    goal: "Landing page for UXRay, an MCP UI review tool that helps coding agents fix AI-generated frontend UX problems",
     audience: "technical founders and developers using Codex, Lovable, Bolt, and Claude Code",
     viewport: ["desktop", "mobile"],
     strictness: "high",

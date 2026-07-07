@@ -13,7 +13,7 @@
       h1 { font-size: clamp(32px, 5vw, 52px); line-height: 1.02; margin: 0 0 14px; max-width: 680px; }
       p { color: #475569; line-height: 1.55; }
       .cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
-      a.button, button { border: 0; border-radius: 999px; padding: 13px 16px; background: #111827; color: white; text-decoration: none; font-weight: 800; }
+      a.button { border: 0; border-radius: 999px; padding: 13px 16px; background: #111827; color: white; text-decoration: none; font-weight: 800; min-height: 44px; display: inline-flex; align-items: center; }
       .proof { display: grid; gap: 12px; margin: 18px 0 0; padding: 0; list-style: none; color: #334155; }
       .proof li { padding-left: 18px; position: relative; }
       .proof li::before { content: ""; width: 7px; height: 7px; border-radius: 999px; background: #0f172a; position: absolute; left: 0; top: .68em; }
@@ -22,7 +22,7 @@
         main { padding: 18px; }
         .hero, .plans { grid-template-columns: 1fr; }
         .card { padding: 22px; }
-        .cta-row .button { width: 100%; text-align: center; }
+        .cta-row .button { width: 100%; justify-content: center; text-align: center; }
       }
     </style>
   </head>

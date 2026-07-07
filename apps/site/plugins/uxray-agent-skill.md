@@ -16,13 +16,19 @@ Do not call UXRay for pure backend, copy-only, database, auth, or infra tasks un
 ## Setup check
 
 1. Run `health_check` first.
-2. If the UXRay MCP server is unavailable, tell the user exactly that and suggest:
+2. Prefer local UXRay MCP over hosted review unless the user explicitly needs a persistent hosted report/share link. Hosted review can burn rendering/API budget during iteration.
+3. If the UXRay MCP server is unavailable in Hermes, add the local server and restart/reload MCP:
    ```bash
-   codex mcp add uxray -- npm --prefix /absolute/path/to/uxray run mcp
+   hermes mcp add uxray --command npm --connect-timeout 90 --args --silent --prefix /home/nxank4/Code/hermes/codepawl/ui-reviewer run mcp
+   hermes mcp test uxray
+   ```
+4. If the UXRay MCP server is unavailable in Codex, tell the user exactly that and suggest:
+   ```bash
+   codex mcp add uxray -- npm --silent --prefix /absolute/path/to/uxray run mcp
    codex mcp list
    codex mcp get uxray
    ```
-3. If there is no running frontend URL, start or find the local dev server before reviewing. Prefer the actual preview URL over static file guesses.
+5. If there is no running frontend URL, start or find the local dev server before reviewing. Prefer the actual preview URL over static file guesses.
 
 ## Required Codex loop
 
@@ -61,7 +67,14 @@ A successful hosted response includes `report_id`, `report_url`, `share_url`, pe
 - Prefer fewer CTAs, clearer hierarchy, stronger empty states, and mobile-safe layouts.
 - Treat high-severity issues as blockers.
 - Use `repair_plan.acceptance_checks` as the verification contract.
-- Avoid adding dense cards, decorative stats, fake testimonials, generic SaaS filler, or AI-polish copy.
+- Avoid adding dense cards, nested cards, decorative stats, fake testimonials, decorative gradient text, side-accent rounded cards, generic SaaS filler, or AI-polish copy.
+- If a card label is the primary content, make its text stronger than the border/background layer; muted gray labels inside gray-ish cards read as equal hierarchy.
+- Do not stack a card grid and then more card-like callouts directly underneath. Convert secondary callouts into compact rows, dividers, or notes.
+- Interactive surfaces should have at least one visible hover affordance: subtle movement, color, border, shadow, underline, or scale. Keep it restrained and respect reduced motion.
+- Large panels, previews, and code blocks need breathing room before follow-up text. Do not let body copy sit 4px under a dark/bordered block; use spacing tied to line-height.
+- When taste is subjective, ask for or infer a `taste_profile`: `simplicity`, `balanced`, or `complexity`. Simplicity should be stricter about extra CTAs/density; complexity may allow richer information only when hierarchy and grouping stay clear.
+- For public learning, prefer pairwise annotation over ratings. Ask X polls like “which version is easier to scan?”, ingest aggregate counts only, and use repeated signals to tune filters or train a taste model.
+- Separate hard quality failures from generated-UI tells: contrast, overflow, spacing rhythm, sticky overlay readability, tap targets, hierarchy, copy specificity, decorative effects, nesting, and repeated marketing cadence should all survive review.
 - Do not claim “fixed” until the after review improves or the remaining blocker is clearly explained.
 
 ## Advanced review passes

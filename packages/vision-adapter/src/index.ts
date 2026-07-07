@@ -40,7 +40,8 @@ function asIssue(input: any): ReviewIssue | null {
   const why = typeof input.why_it_matters === "string" && input.why_it_matters.trim() ? input.why_it_matters.trim() : "This can reduce clarity or task completion.";
   const fix = typeof input.fix === "string" && input.fix.trim() ? input.fix.trim() : "Make the visual hierarchy and primary action more explicit.";
   const affected = typeof input.affected_area === "string" && input.affected_area.trim() ? input.affected_area.trim() : "screenshot";
-  return { severity, category, evidence, why_it_matters: why, fix, affected_area: affected };
+  const principle = typeof input.principle === "string" && input.principle.trim() ? input.principle.trim() : undefined;
+  return { severity, category, principle, evidence, why_it_matters: why, fix, affected_area: affected };
 }
 
 function safeJsonFromText(text: string): any {
@@ -87,6 +88,7 @@ Visible text sample:
 ${rendered.text_sample.slice(0, 1800)}
 
 Review the screenshots and DOM together. Focus on whether the UI solves the user's need, not whether it is merely pretty.
+Ground issues in durable UI/UX principles: Nielsen heuristics, WCAG POUR, Shneiderman feedback/error prevention, Norman signifiers/feedback, Gestalt grouping, Fitts/Hick/Miller/Jakob laws, and platform accessibility guidance.
 Find at most 5 concrete issues. Prefer issues that a coding agent can repair.
 Return strict JSON only with this shape:
 {
@@ -96,6 +98,7 @@ Return strict JSON only with this shape:
     {
       "severity": "high" | "medium" | "low",
       "category": "intent_fit" | "information_hierarchy" | "content_density" | "task_flow" | "visual_hierarchy" | "responsive" | "accessibility" | "state_completeness",
+      "principle": string,
       "evidence": string,
       "why_it_matters": string,
       "fix": string,
