@@ -2,6 +2,7 @@
   "name": "uxray",
   "version": "0.3.1",
   "description": "UXRay is a local-first UI/UX review layer for AI-built frontends.",
+  "license": "Apache-2.0",
   "type": "module",
   "private": true,
   "scripts": {
@@ -13,23 +14,17 @@
     "smoke:render": "node scripts/smoke-render-client.mjs",
     "smoke:vision": "node scripts/smoke-vision-client.mjs",
     "smoke:api": "node scripts/smoke-api.mjs",
-    "smoke:hosted": "node scripts/smoke-hosted-review.mjs",
-    "smoke:dashboard": "node scripts/smoke-dashboard.mjs",
-    "smoke:account": "node scripts/smoke-account.mjs",
     "eval:fixtures": "node scripts/eval-fixtures.mjs",
     "eval:reset": "node scripts/reset-eval-fixtures.mjs",
     "demo:report": "node scripts/generate-demo-report.mjs",
     "demo:pipeline": "node scripts/run-demo-pipeline.mjs",
-    "cloudflare:dev": "wrangler dev",
-    "cloudflare:deploy": "wrangler deploy",
     "review:url": "node scripts/review-url.mjs",
     "review:diff": "node scripts/review-diff.mjs",
     "check:update": "node scripts/check-update.mjs",
     "upgrade": "node scripts/upgrade.mjs",
-    "annotation:pairwise": "node scripts/annotation-pairwise-task.mjs",
-    "annotation:ingest:x": "node scripts/annotation-ingest-x-poll.mjs",
     "test:core": "tsx scripts/test-reviewer-core.ts",
-    "test:annotation": "node scripts/test-annotation-pipeline.mjs"
+    "install:agents": "node scripts/install-agent-rules.mjs",
+    "smoke:agents": "node scripts/smoke-agent-usage.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

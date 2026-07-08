@@ -1,184 +1,145 @@
-# UXRay MCP
+# UXRay
 
-UXRay is a local-first, API-ready UI/UX review layer for AI-built frontends.
-
-The first spike validates the Codex integration path:
-
-1. Run a local MCP server.
-2. Register it with Codex.
-3. Let Codex call `review_ui_url` and receive structured UX repair guidance.
-
-## Current tools
-
-- `health_check` — verifies MCP connectivity.
-- `review_ui_url` — renders a URL with Chrome/Playwright, captures desktop/mobile screenshots, extracts DOM and layout metrics, optionally runs a server-side vision judge with `use_vision=true`, optionally returns screenshots to the host agent with `return_images=true`, and returns structured issues plus a concrete `repair_plan` agents can apply.
-- `review_ui_diff` — compares two `review_ui_url` JSON reports and returns a before/after repair-loop scorecard.
-
-## Current API endpoints
-
-- `GET /health` — verifies the HTTP API is live.
-- `GET /v1/install` — returns Codex, Claude Code, and local API setup snippets for the hosted docs.
-- `GET /v1/update` — returns latest UXRay version, release notes, and local check/upgrade commands.
-- `GET /v1/demo/report` — returns the static demo scorecard used by the landing page.
-- `GET|POST /v1/billing/checkout` — creates a Creem checkout session for `plan=pro|team|credits`, with direct product-link fallback.
-- `GET /v1/auth/session` — returns the current email-scoped session from the `uxray_session` cookie.
-- `POST /v1/auth/login` / `POST /v1/auth/register` — compatibility endpoints that create/update an email-scoped workspace session; register also records a pending Creem entitlement before checkout.
-- `POST /v1/auth/magic-link` / `GET /v1/auth/verify` — create and consume short-lived email verification links. When the Cloudflare `EMAIL` send binding is configured, real addresses receive the link by email; `.test`/debug requests return `verify_url` for smokes.
-- `GET|POST /v1/account/api-keys` — list redacted API-key prefixes or issue a one-time key for verified accounts; hosted review accepts `Authorization: Bearer uxr_...`.
-- `POST /v1/reviews/url` — API equivalent of `review_ui_url`; hosted mode stores report JSON/screenshots and returns `report_id`, `report_url`, and `share_url`.
-- `GET /v1/reports/:id` — returns a saved hosted review report from R2.
-- `GET /r/:id` — renders a public saved report page with score, screenshots, top issues, and API snippet.
-- `GET /v1/reports/:id/screenshots/:file` — serves persisted screenshots from R2.
-- `GET /v1/account/dashboard` — returns account-scoped usage when logged in; otherwise global preview usage, saved report summaries, achievements, and advanced product bets.
-- `POST /v1/reviews/diff` — API equivalent of `review_ui_diff`.
-
-## Hosted Cloudflare demo
+UXRay is a local-first UI/UX review gate for AI-built frontends. It gives coding agents a concrete repair contract instead of vague design advice:
 
 ```txt
-https://useuxray.com/
-https://useuxray.com/docs.html
-https://useuxray.com/demo-report.html
-https://useuxray.com/login.html
-https://useuxray.com/signup.html
-https://useuxray.com/checkout.html
-https://useuxray.com/account.html
-https://useuxray.com/v1/install
-https://useuxray.com/v1/update
-https://useuxray.com/v1/billing/checkout
-https://useuxray.com/v1/demo/report
-https://useuxray.com/r/:report_id
-https://useuxray.com/plugins/uxray-agent-skill.md
+health_check -> review_ui_url -> repair UI -> review_ui_diff
 ```
 
-The Cloudflare site hosts the landing page, install docs, before/after demo visuals, pricing/account shell, UXRay agent skill, and public API surface. Full URL rendering runs through local MCP/Playwright or a browser-capable Node render worker. In production, Cloudflare remains the control plane and proxies `/v1/reviews/url` to the Fly.io render worker when `RENDER_API_BASE` is configured, because standard Workers should not launch Chrome. Saved hosted reports use Cloudflare D1 (`uxray-reports`) for metadata and R2 (`uxray-reports`) for report JSON plus screenshot PNGs.
+The public repo is the Apache-2.0 local MCP/core. The commercial cloud code has been split into the private `codepawl/uxray-cloud` repo.
 
-The current review contract includes `top_issues`, viewport `layout_metrics`, and a `repair_plan` with region, selector hints, change intent, constraints, acceptance checks, and regression risks. This makes the output more useful as an agent repair contract than generic design advice.
+## What stays public
 
-Payment is wired through Creem checkout for `UXRay Pro` at `$19/mo`, `UXRay Team` at `$99/mo`, and `UXRay Review Credits` at `$49` one-time. `/v1/billing/checkout` creates/updates an email workspace, records a pending entitlement, creates a Creem checkout session with `CREEM_API_KEY` when configured, then falls back to direct Creem payment links by `plan=pro|team|credits` if the secret is absent or Creem returns an error. Creem webhook payloads are recorded in D1; when `CREEM_WEBHOOK_SECRET` is configured, only valid HMAC-signed webhooks activate paid entitlements. Unsigned payloads stay `recorded_unverified`.
+- MCP server: `health_check`, `review_ui_url`, `review_ui_diff`, `check_update`
+- reviewer core and structured report schema
+- local Playwright renderer
+- optional vision adapter interface
+- local HTTP API wrapper for development/smoke use
+- eval fixtures and reproducible repair-loop demos
+- agent auto-trigger rules for Codex, Claude Code-compatible MCP clients, and OMP
+- public docs about the open-core/cloud boundary
 
-Hosted review credit behavior: anonymous public demo calls still work for proof/smoke. Logged-in or API-key requests must have an active entitlement with credits remaining before Cloudflare calls the Fly renderer; successful account-scoped hosted reviews decrement active credits.
+## What moved private
 
-Magic-link email delivery uses Cloudflare Email Service / Email Routing via the Worker `send_email` binding named `EMAIL`. `MAGIC_LINK_FROM` defaults to `no-reply@useuxray.com`, `SUPPORT_EMAIL` defaults to `hello@useuxray.com`, and delivery state is recorded on `magic_links.delivery_status` (`sent`, `debug_returned`, `email_not_configured`, or `email_send_failed`).
+Private cloud/product code now lives in `/home/nxank4/Code/hermes/codepawl/uxray-cloud` and the GitHub private repo `codepawl/uxray-cloud`:
 
-The public demo gallery currently shows 3 validated before/after screenshot pairs from the real eval run plus 7 install-to-run scenario cards. Do not present the 7 extra scenario cards as validated before/after proofs until their fixtures have been generated and repaired.
+- Cloudflare Worker production control plane
+- hosted account/session/dashboard code
+- API-key issuance and hosted credit gates
+- Creem checkout/webhook handling
+- D1/R2 migrations and persisted report operations
+- public production website/account/checkout assets
+- hosted render deployment/runbooks and cloud smokes
+- customer-data and internal admin workflows
 
-Current public before/after imagery is real eval evidence from `reports/evals/spike-007`:
+Security should not rely on repo secrecy, but private cloud code keeps the public repo clean and reduces leaked business/infra assumptions. See `SECURITY.md`.
 
-```txt
-landing-chaos baseline: 46 / 100
-landing-chaos after:    100 / 100
-same fixture family, same local reviewer, same viewport contract, same repair-loop prompt style
-```
-
-## Local commands
+## Install
 
 ```bash
+git clone https://github.com/codepawl/uxray uxray
+cd uxray
 npm install
 npm run typecheck
 npm run build
 npm run smoke:mcp
-npm run api
+```
+
+## Run as MCP
+
+```bash
+npm run mcp
+```
+
+Codex:
+
+```bash
+codex mcp add uxray -- npm --silent --prefix /absolute/path/to/uxray run mcp
+```
+
+Generic MCP JSON:
+
+```json
+{
+  "mcpServers": {
+    "uxray": {
+      "command": "npm",
+      "args": ["--silent", "--prefix", "/absolute/path/to/uxray", "run", "mcp"]
+    }
+  }
+}
+```
+
+Install agent rules locally:
+
+```bash
+npm run install:agents
+npm run smoke:agents
+```
+
+## Local API smoke
+
+```bash
+PORT=4317 npm run api
 npm run smoke:api
-npm run eval:fixtures
+```
+
+The public API wrapper is for local development and smoke tests. Production account/dashboard/billing/hosted persistence lives in the private cloud repo.
+
+## Repair-loop proof
+
+Run the deterministic fixture pack:
+
+```bash
 npm run eval:reset
+npm run eval:fixtures
 npm run demo:report
+```
+
+The validated demo loop from this repo showed:
+
+```txt
+average score: 39 -> 100
+issues:        11 -> 0
+high severity:  9 -> 0
+fixtures: landing, dashboard, onboarding
+```
+
+## Scripts
+
+```bash
+npm run typecheck
+npm run build
+npm run smoke:mcp
+npm run smoke:render
+npm run smoke:vision
+npm run smoke:api
+npm run eval:reset
+npm run eval:fixtures
 npm run demo:pipeline
 npm run review:url
 npm run review:diff
 npm run check:update
 npm run upgrade
-npm run mcp
+npm run test:core
+npm run install:agents
+npm run smoke:agents
 ```
 
-Run the local API:
+## License
 
-```bash
-PORT=4317 npm run api
-```
+Apache-2.0. See `LICENSE`.
 
-Hosted render worker:
+## Cloud boundary
 
-```bash
-flyctl deploy
-wrangler secret put RENDER_API_TOKEN
-# set RENDER_API_BASE to the Fly app URL in wrangler.toml or deployment config
-npm run cloudflare:deploy
-```
+Keep these out of the public repo:
 
-The Fly worker is intentionally narrow: it runs the browser-capable Node API only. It should use `RENDER_API_TOKEN`, `UXRAY_REQUIRE_PUBLIC_URL=true`, and hard timeouts so public hosted rendering cannot access localhost/private-network URLs.
+- `.env` and local secret stores
+- Cloudflare/Wrangler/Creem tokens
+- API keys, session cookies, magic-link tokens, OAuth tokens
+- customer screenshots/private reports
+- hosted render queues/fleet internals
+- tenant isolation, billing reconciliation, abuse controls
+- internal admin tooling and sensitive deployment runbooks
 
-Run the fixture eval pack:
-
-```bash
-EVAL_PHASE=baseline npm run eval:fixtures
-EVAL_PHASE=after npm run eval:fixtures
-```
-
-Generate the demo report from saved eval summaries:
-
-```bash
-npm run demo:report
-```
-
-Run the one-shot local demo pipeline. This resets eval fixtures to flawed seeds, runs baseline eval, asks Codex to repair via MCP screenshots, runs after eval, generates the demo report, and builds:
-
-```bash
-npm run demo:pipeline
-```
-
-To test orchestration without invoking Codex:
-
-```bash
-SKIP_CODEX_REPAIR=1 npm run demo:pipeline
-```
-
-Run the rendered smoke test:
-
-```bash
-python3 -m http.server 4173 --bind 127.0.0.1 --directory examples/bad-landing
-TEST_URL=http://127.0.0.1:4173 npm run smoke:render
-```
-
-Run the vision smoke test. Without `OPENAI_API_KEY`, this exercises the safe fallback path. With a real OpenAI API key that has Responses API write scope, it runs the model-based screenshot judge.
-
-```bash
-TEST_URL=http://127.0.0.1:4173 npm run smoke:vision
-OPENAI_API_KEY=... TEST_URL=http://127.0.0.1:4173 npm run smoke:vision
-```
-
-For the Codex-login path, do not force a server-side API key. Install the UXRay agent skill so Codex auto-triggers UXRay for generated frontend review/repair tasks, asks the MCP tool to return images, then inspects them with its own logged-in model session:
-
-```bash
-HOME=/home/nxank4 codex exec --sandbox workspace-write --cd /home/nxank4/Code/hermes/codepawl/ui-reviewer \
-  "Use the uxray MCP server to call review_ui_url on http://127.0.0.1:4173 with viewport desktop and mobile, strictness high, use_vision false, return_images true. Inspect the attached screenshots yourself and report one visual UX issue."
-```
-
-This is the preferred local demo path when Codex is logged in through the browser/link flow instead of an `OPENAI_API_KEY`.
-
-Run the repair-loop scorecard helper:
-
-```bash
-REVIEW_LABEL=before TEST_URL=http://127.0.0.1:4173 npm run review:url
-REVIEW_LABEL=after TEST_URL=http://127.0.0.1:4173 npm run review:url
-npm run review:diff
-```
-
-Spike 004 validated the Codex loop: baseline score `82`, repaired score `100`, high-severity issues `1 -> 0`.
-
-Register with Codex:
-
-```bash
-codex mcp add uxray -- npm --silent --prefix /home/nxank4/Code/hermes/codepawl/ui-reviewer run mcp
-codex mcp list
-```
-
-Hermes session note: this shell's default `HOME` is profile-local. To use An's real Codex login/config from Hermes terminal calls, prefix Codex commands with `HOME=/home/nxank4`.
-
-Verified Codex roundtrip:
-
-```bash
-HOME=/home/nxank4 codex exec --sandbox read-only --cd /home/nxank4/Code/hermes/codepawl/ui-reviewer "Use the uxray MCP server..."
-# mcp: uxray/health_check (completed)
-# mcp: uxray/review_ui_url (completed)
-# score: 82
-```
+Thin public-safe abstractions are fine. Production cloud code belongs in `codepawl/uxray-cloud`.

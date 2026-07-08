@@ -8,6 +8,67 @@ import { captureUiUrl } from "../../../packages/renderer/src/index.js";
 import { judgeRenderedUiWithVision } from "../../../packages/vision-adapter/src/index.js";
 
 const UXRAY_VERSION = "0.3.1";
+const UXRAY_CLOUD_API_BASE = (process.env.UXRAY_API_BASE || "https://useuxray.com").replace(/\/$/, "");
+const UXRAY_API_KEY = process.env.UXRAY_API_KEY || "";
+const UXRAY_CLOUD_MODE = process.env.UXRAY_CLOUD_MODE === "1" || Boolean(UXRAY_API_KEY);
+
+function isLocalReviewUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return ["localhost", "127.0.0.1", "0.0.0.0", "::1"].includes(url.hostname) || url.hostname.endsWith(".local");
+  } catch {
+    return false;
+  }
+}
+
+async function hostedCloudReview(args: any) {
+  if (!UXRAY_CLOUD_MODE || !UXRAY_API_KEY) return null;
+  if (isLocalReviewUrl(args.url) && process.env.UXRAY_CLOUD_FORCE !== "1") return null;
+
+  const response = await fetch(`${UXRAY_CLOUD_API_BASE}/v1/reviews/url`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${UXRAY_API_KEY}`
+    },
+    body: JSON.stringify({
+      url: args.url,
+      goal: args.goal,
+      audience: args.audience,
+      viewport: args.viewport,
+      strictness: args.strictness,
+      taste_profile: args.taste_profile,
+      use_vision: args.use_vision,
+      return_images: false
+    })
+  });
+
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = { ok: false, error: "cloud_non_json_response", status: response.status, status_text: response.statusText };
+  }
+
+  return {
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify(
+          {
+            cloud_mode: true,
+            cloud_api_base: UXRAY_CLOUD_API_BASE,
+            status: response.status,
+            ok: response.ok,
+            ...((payload && typeof payload === "object") ? payload : { payload })
+          },
+          null,
+          2
+        )
+      }
+    ]
+  };
+}
 
 const server = new McpServer({
   name: "uxray",
@@ -30,6 +91,9 @@ server.registerTool(
             service: "uxray",
             version: UXRAY_VERSION,
             stage: "uxray-brand-sync",
+            cloud_mode: UXRAY_CLOUD_MODE,
+            cloud_api_base: UXRAY_CLOUD_API_BASE,
+            cloud_api_key_present: Boolean(UXRAY_API_KEY),
             tools: ["health_check", "check_update", "review_ui_url", "review_ui_diff"],
             update_command: "npm run check:update"
           },
@@ -107,6 +171,9 @@ server.registerTool(
     }
   },
   async (args) => {
+    const hosted = await hostedCloudReview(args);
+    if (hosted) return hosted;
+
     let rendered;
     let renderError: string | undefined;
     let vision;
