@@ -1,0 +1,102 @@
+[
+  {
+    "id": "landing_ai_code_review",
+    "route_type": "landing",
+    "product_goal": "Explain an AI code review tool that finds risky frontend changes before merge.",
+    "audience": "technical founders and senior frontend engineers",
+    "primary_task": "Start a review on a repository URL",
+    "constraints": ["must explain concrete review mechanism", "must have one primary CTA above the fold"],
+    "slop_risks": ["generic SaaS cards", "fake productivity stats", "gradient hero without mechanism"],
+    "success_metrics": ["clear primary CTA", "specific workflow copy", "low high-severity UXRay issues"]
+  },
+  {
+    "id": "dashboard_empty_state",
+    "route_type": "dashboard",
+    "product_goal": "Guide a new user through connecting their first project to an AI UI review dashboard.",
+    "audience": "developer tool users",
+    "primary_task": "Connect first project",
+    "constraints": ["empty state must not look broken", "show next step and recovery path"],
+    "slop_risks": ["too many setup cards", "unclear primary CTA", "fake sample analytics"],
+    "success_metrics": ["one obvious setup action", "clear state completeness", "mobile-safe controls"]
+  },
+  {
+    "id": "devtool_docs_home",
+    "route_type": "docs",
+    "product_goal": "Introduce a local-first MCP UI review tool and help developers install it quickly.",
+    "audience": "Codex, Claude Code, and OMP users",
+    "primary_task": "Copy the install command and run a first review",
+    "constraints": ["commands must be easy to scan", "docs density can be moderate if grouping is clear"],
+    "slop_risks": ["marketing hero dominance", "code block spacing too tight", "unclear install path"],
+    "success_metrics": ["copyable command prominence", "scan-friendly headings", "tight_block_spacing_count stays low"]
+  },
+  {
+    "id": "pricing_section",
+    "route_type": "pricing",
+    "product_goal": "Compare free local UXRay, pro hosted reports, and team usage without making plan cards feel imbalanced.",
+    "audience": "technical founders choosing a UI review workflow",
+    "primary_task": "Choose a plan or stay local",
+    "constraints": ["plan cards must read as equal peers", "secondary details must not overwhelm primary choice"],
+    "slop_risks": ["imbalanced pricing cards", "fake urgency", "too many badges"],
+    "success_metrics": ["peer_card_imbalance_count zero", "clear plan hierarchy", "no fake stats"]
+  },
+  {
+    "id": "agent_chat_ui",
+    "route_type": "app_shell",
+    "product_goal": "Design an agent chat interface that shows tool progress, pending states, and repair evidence.",
+    "audience": "operators supervising AI coding agents",
+    "primary_task": "Understand what the agent is doing and intervene if needed",
+    "constraints": ["preserve operator chrome", "show dynamic states", "avoid landing-page style hero"],
+    "slop_risks": ["static empty chat only", "smooth decorative motion", "hidden tool errors"],
+    "success_metrics": ["state completeness", "clear pending/progress affordance", "no horizontal overflow"]
+  },
+  {
+    "id": "news_radar_homepage",
+    "route_type": "editorial_homepage",
+    "product_goal": "Show a frequent AI/news radar homepage with scannable live stories and concise context.",
+    "audience": "busy AI builders checking what matters today",
+    "primary_task": "Scan current stories and open the most relevant one",
+    "constraints": ["content density is allowed", "above-fold should prioritize scanning over signup"],
+    "slop_risks": ["luxury whitespace hiding content", "RSS-card soup", "too many CTAs above fold"],
+    "success_metrics": ["editorial scan quality", "clear grouping", "low action ambiguity"]
+  },
+  {
+    "id": "auth_magic_link",
+    "route_type": "auth",
+    "product_goal": "Let a user request a magic link and understand sent, expired, and error states.",
+    "audience": "new UXRay account users",
+    "primary_task": "Submit email and recover from link issues",
+    "constraints": ["must expose feedback states", "must not dump raw JSON"],
+    "slop_risks": ["missing validation", "generic auth card", "weak secondary actions"],
+    "success_metrics": ["state completeness", "form feedback", "mobile tap targets"]
+  },
+  {
+    "id": "report_detail_page",
+    "route_type": "report",
+    "product_goal": "Present a UXRay report with screenshots, score, high-severity issues, and repair plan for a coding agent.",
+    "audience": "developer reviewing an AI-generated frontend",
+    "primary_task": "Identify blockers and copy the repair prompt",
+    "constraints": ["issue evidence must beat decorative charts", "screenshots need room"],
+    "slop_risks": ["fake analytics dashboard", "dense cards with equal weight", "hidden repair prompt"],
+    "success_metrics": ["clear blocker hierarchy", "screenshot readability", "repair plan prominence"]
+  },
+  {
+    "id": "workflow_builder",
+    "route_type": "builder",
+    "product_goal": "Let users assemble a visual AI workflow that runs UX review, repair, and verification steps.",
+    "audience": "technical product builders",
+    "primary_task": "Add a review step and understand the resulting pipeline",
+    "constraints": ["visual graph must remain readable", "primary action must be obvious"],
+    "slop_risks": ["decorative node graph", "tiny controls", "unclear affordances"],
+    "success_metrics": ["interaction affordance", "tap target size", "clear graph hierarchy"]
+  },
+  {
+    "id": "comparison_page",
+    "route_type": "landing",
+    "product_goal": "Compare UXRay with generic AI frontend generators by showing why post-generation review catches shipping risks.",
+    "audience": "founders evaluating AI app builders",
+    "primary_task": "Understand the before/after repair value and run a demo review",
+    "constraints": ["must not attack competitors", "show concrete before/after mechanism"],
+    "slop_risks": ["vague superiority claims", "fake benchmark numbers", "overly polished comparison cards"],
+    "success_metrics": ["specific proof", "low generic copy", "clear demo CTA"]
+  }
+]

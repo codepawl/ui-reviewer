@@ -1,0 +1,59 @@
+{
+  "technical_premium": {
+    "base_profile": "balanced",
+    "description": "Calm, high-trust technical product UI for founders, developers, and operator workflows.",
+    "prefer": [
+      "strong primary hierarchy",
+      "quiet secondary text",
+      "specific workflow copy",
+      "clear mechanism explanation",
+      "equal peer cards",
+      "subtle hover affordances",
+      "evidence or before/after proof over decorative claims"
+    ],
+    "avoid": [
+      "card soup",
+      "generic SaaS filler",
+      "fake stats",
+      "decorative gradients",
+      "too many CTAs above the fold",
+      "nested rounded cards",
+      "visual novelty that does not clarify the task"
+    ]
+  },
+  "editorial_dense": {
+    "base_profile": "complexity",
+    "description": "Information-rich editorial or radar pages where scan quality matters more than luxury whitespace.",
+    "prefer": [
+      "high information value",
+      "scannable sections",
+      "clear grouping",
+      "compact but readable layout",
+      "specific headlines and summaries"
+    ],
+    "avoid": [
+      "luxury whitespace that hides content",
+      "marketing hero dominance",
+      "repetitive cards",
+      "unlabeled dense regions"
+    ]
+  },
+  "simple_saas": {
+    "base_profile": "simplicity",
+    "description": "Low-friction SaaS landing and signup surfaces with one obvious path.",
+    "prefer": [
+      "low density",
+      "one clear CTA",
+      "simple section rhythm",
+      "obvious hierarchy",
+      "short concrete copy"
+    ],
+    "avoid": [
+      "multiple competing CTAs",
+      "complex nav",
+      "dense dashboards",
+      "over-explained sections",
+      "decorative proof blocks"
+    ]
+  }
+}

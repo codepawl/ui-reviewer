@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://useuxray.com/schemas/uxray-correction.schema.json",
+  "title": "UXRay expert correction record",
+  "type": "object",
+  "required": ["schema_version", "record_id", "created_at", "source", "review", "correction", "promotion"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "uxray.correction.v1" },
+    "record_id": { "type": "string", "minLength": 12 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "source": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": true,
+      "properties": {
+        "kind": { "type": "string", "enum": ["expert_review", "user_feedback", "model_disagreement"] },
+        "reviewer": { "type": "string" }
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": ["report_path"],
+      "additionalProperties": true,
+      "properties": {
+        "report_path": { "type": "string" },
+        "reviewed_url": { "type": "string" },
+        "score": { "type": "number" },
+        "verdict": { "type": "string" },
+        "top_issue_categories": { "type": "array", "items": { "type": "string" } },
+        "screenshots": { "type": "array", "items": { "type": "string" } },
+        "layout_metrics": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "correction": {
+      "type": "object",
+      "required": ["axis", "region", "taste_profile", "human_note"],
+      "additionalProperties": true,
+      "properties": {
+        "axis": { "type": "string" },
+        "region": { "type": "string" },
+        "taste_profile": { "type": "string" },
+        "severity": { "type": "string", "enum": ["low", "medium", "high"] },
+        "human_note": { "type": "string", "minLength": 1 },
+        "preferred_traits": { "type": "array", "items": { "type": "string" } },
+        "rejected_traits": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "promotion": {
+      "type": "object",
+      "required": ["candidate_for", "deterministic_metric_candidate"],
+      "additionalProperties": true,
+      "properties": {
+        "candidate_for": { "type": "array", "items": { "type": "string" } },
+        "deterministic_metric_candidate": { "type": "boolean" },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}

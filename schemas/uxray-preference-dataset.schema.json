@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://useuxray.com/schemas/uxray-preference-dataset.schema.json",
+  "title": "UXRay pairwise UI preference dataset record",
+  "type": "object",
+  "required": ["schema_version", "record_id", "task", "source", "choice", "labels", "derived_targets", "created_at"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "uxray.preference.v1" },
+    "record_id": { "type": "string", "minLength": 12 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "task": {
+      "type": "object",
+      "required": ["task_id", "axis", "prompt", "artifacts"],
+      "additionalProperties": true,
+      "properties": {
+        "task_id": { "type": "string", "minLength": 8 },
+        "axis": {
+          "type": "string",
+          "enum": ["spacing_rhythm", "hierarchy", "density", "cta_clarity", "card_balance", "simplicity_vs_complexity", "overall_taste", "ai_slop", "copy_specificity", "creative_distinctiveness", "brand_fit", "scanability", "interaction_affordance", "custom"]
+        },
+        "prompt": { "type": "string", "minLength": 12 },
+        "route_type": { "type": "string" },
+        "target_profile": { "type": "string", "enum": ["simplicity", "balanced", "complexity", "mixed"] },
+        "artifacts": {
+          "type": "object",
+          "required": ["a", "b"],
+          "additionalProperties": false,
+          "properties": {
+            "a": { "$ref": "#/$defs/artifact" },
+            "b": { "$ref": "#/$defs/artifact" }
+          }
+        },
+        "context": { "type": "object", "additionalProperties": true },
+        "metrics_before_label": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": true,
+      "properties": {
+        "kind": { "type": "string", "enum": ["x_poll", "manual_pairwise", "expert_review", "vision_model", "internal_ab_test"] },
+        "platform": { "type": "string" },
+        "post_id": { "type": "string" },
+        "post_url": { "type": "string" },
+        "poll_duration_hours": { "type": "number" },
+        "sample_size": { "type": "integer", "minimum": 0 },
+        "audience_notes": { "type": "string" }
+      }
+    },
+    "choice": {
+      "type": "object",
+      "required": ["winner", "confidence", "distribution"],
+      "additionalProperties": false,
+      "properties": {
+        "winner": { "type": "string", "enum": ["a", "b", "tie", "unclear"] },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "distribution": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "a": { "type": "number", "minimum": 0 },
+            "b": { "type": "number", "minimum": 0 },
+            "tie": { "type": "number", "minimum": 0 },
+            "other": { "type": "number", "minimum": 0 }
+          }
+        },
+        "raw_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "a": { "type": "integer", "minimum": 0 },
+            "b": { "type": "integer", "minimum": 0 },
+            "tie": { "type": "integer", "minimum": 0 },
+            "other": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "labels": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "preferred_traits": { "type": "array", "items": { "type": "string" } },
+        "rejected_traits": { "type": "array", "items": { "type": "string" } },
+        "taste_profile_signal": { "type": "string", "enum": ["simplicity", "balanced", "complexity", "mixed", "unknown"] },
+        "human_note": { "type": "string" }
+      }
+    },
+    "derived_targets": {
+      "type": "object",
+      "required": ["hard_filter_updates", "model_training"],
+      "additionalProperties": true,
+      "properties": {
+        "hard_filter_updates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["metric", "direction"],
+            "additionalProperties": true,
+            "properties": {
+              "metric": { "type": "string" },
+              "direction": { "type": "string", "enum": ["increase_weight", "decrease_weight", "raise_threshold", "lower_threshold", "new_metric", "ignore"] },
+              "rationale": { "type": "string" }
+            }
+          }
+        },
+        "model_training": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "pairwise_label": { "type": "string", "enum": ["a_preferred", "b_preferred", "tie", "unclear"] },
+            "reward_score": { "type": "number", "minimum": -1, "maximum": 1 },
+            "feature_tags": { "type": "array", "items": { "type": "string" } },
+            "constraint_tags": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "required": ["label"],
+      "additionalProperties": true,
+      "properties": {
+        "label": { "type": "string" },
+        "screenshot_url": { "type": "string" },
+        "screenshot_path": { "type": "string" },
+        "route_url": { "type": "string" },
+        "viewport": { "type": "string" },
+        "metrics": { "type": "object", "additionalProperties": true },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}
